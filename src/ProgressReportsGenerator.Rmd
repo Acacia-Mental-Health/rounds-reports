@@ -1,0 +1,655 @@
+---
+title: "`r display_name` <img src=\"Logo.png\" height=\"80px\" style=\"float: right;\"/>"
+date: "Report generated `r format(Sys.time(), '%d %b %Y')`"
+output: html_document
+params:
+  selected_patient: selected_patient
+  display_name: display_name
+  earliest_date: earliest_date
+  rounds: rounds
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r cars}
+## Load libraries
+library(dplyr)
+library(formattable)
+library(ggnewscale)
+library(ggplot2)
+library(htmltools)
+library(knitr)
+library(lubridate)
+library(stringr)
+library(tidyr)
+
+```
+
+```{r}
+## Load data
+## Remove, rename, and clean columns
+## Remove entries with "xx" in the ID column
+## Prevent case sensitivity in patient IDs by changing all IDs to lowercase
+tech_raw <- read.csv("../data/Tech.csv") %>% select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
+  mutate(Date = as.Date(What.is.the.date.of.the.treatment., "%m/%d/%y"),
+         Pt.ID = tolower(Pt.ID),
+         Tx = as.integer(Tx),
+         X = as.integer(X)) %>% 
+  rename(Planned_Course = X) %>% 
+  filter(Column1 != "xx")
+survey_raw <- read.csv("../data/Survey.csv") %>% select(-"Txt.Sum", -"Email", -"Name", -contains(".of.16."),
+                                                -contains(".of.21."), -contains(".of.9."), -contains(".if.none."),
+                                                -starts_with("Have."), -starts_with("If.")) %>% 
+  mutate(Date = as.Date(Completion.time, "%m/%d/%y"),
+         Patient = tolower(Patient)) %>% 
+  rename(SurveyID = What.survey.s..would.you.like.to.complete.,
+         GAD7 = GAD7_)
+
+```
+
+
+```{r}
+## Filter for selected patient
+tech_filtered <- tech_raw %>% filter(Pt.ID %in% selected_patient)
+survey_filtered <- survey_raw %>% filter(Patient %in% selected_patient)
+
+## Throw error if there is no tech data after applying patient filter (no survey data is OK)
+if (nrow(tech_filtered) == 0) {
+  stop("Patient IDs do not match any patient in the TMS tech spreadsheet. Check spelling/number in TMS tech spreadsheet and try again.")
+}
+
+## If date is given, filter for date range
+if (!is.na(earliest_date)) {
+  tech_filtered <- tech_filtered %>% filter(Date >= as.Date(earliest_date))
+  survey_filtered <- survey_filtered %>% filter(Date >= as.Date(earliest_date))
+}
+
+## Throw error if there is no tech data after applying date filter (no survey data is OK)
+if (nrow(tech_filtered) == 0) {
+  stop("The selected patient does not have TMS tech data after your specified date. Pick an earlier date and try again.")
+}
+
+```
+
+```{r, results = "asis"}
+## Print patient demographics, session number, and planned course for use during rounds
+if (rounds == TRUE) {
+  demographics <- read.csv("../data/Demographics.csv") %>% 
+    mutate(Patient.ID = tolower(Patient.ID)) %>% 
+    rename(Diagnoses = Diagnoses..write.out.in.full.) %>% 
+    filter(Patient.ID %in% selected_patient)
+  sprintf("The patient (ID = '%s') is a %i-year-old %s with %s. The patient has completed %i of %i planned sessions.", demographics$Patient.ID, demographics$Age, demographics$Gender, demographics$Diagnoses, tail(tech_filtered, 1)$Tx, tail(tech_filtered, 1)$Planned_Course)
+}
+
+```
+
+```{r}
+## Count number of treatments on each day
+## Take cumulative sum of treatments
+tech_counts <- tech_filtered %>% select(Date, Pt.ID, Tx, Planned_Course, Protocol) %>% 
+  group_by(Date) %>% 
+  mutate(num_tx_on_day = n()) %>% 
+  slice(n()) %>% 
+  ungroup() %>% 
+  mutate(cumulative_num_tx = cumsum(num_tx_on_day))
+
+## Filter PHQ-9/GAD-7 data
+## Collapse scores from the same date into one row
+## Change data into long form
+phq9gad7 <- survey_filtered %>% filter(SurveyID == "PHQ9" | SurveyID == "GAD7") %>%
+  group_by(Date, Patient) %>%
+  summarise(PHQ9 = PHQ9[which(!is.na(PHQ9))[1]],
+            PHQ9_Q9 = PHQ.Q9_[which(!is.na(PHQ.Q9_))[1]],
+            GAD7 = GAD7[which(!is.na(GAD7))[1]]) %>% 
+  ungroup() %>% 
+  pivot_longer(c("PHQ9", "GAD7", "PHQ9_Q9"), names_to = "which_survey", values_to = "score") %>% 
+  mutate(which_survey = factor(which_survey, levels = c("PHQ9", "GAD7", "PHQ9_Q9")))
+
+```
+
+```{r, fig.width = 5.5, fig.height = 4.5, fig.align = "center", results = "asis"}
+## If patient has PHQ-9 and GAD-7 data, produce master graph
+if (nrow(phq9gad7) != 0) {
+  ## Generate all dates in between treatment days
+  ## Bind PHQ-9/GAD-7 data to all dates
+  ## Bind treatment count data to all dates
+  ## Change blank cells to NA
+  ## Fill down treatment count and protocol data
+  all_dates <- data.frame(Date = seq(min(tech_counts$Date), max(tech_counts$Date), by = "days"))
+  master_graph_data <- merge(filter(phq9gad7, which_survey == "PHQ9" | which_survey == "GAD7"), all_dates, by = "Date", all = TRUE, no.dups = FALSE)
+  master_graph_data <- merge(tech_counts, master_graph_data, by = "Date", all = TRUE, no.dups = FALSE) %>% 
+    select(-Patient, -Tx, -num_tx_on_day)
+  master_graph_data$Protocol[master_graph_data$Protocol == ""] <- NA
+  master_graph_data <- master_graph_data %>%  fill(cumulative_num_tx, .direction = "down") %>%
+    fill(Protocol, .direction = "down") %>% 
+    rename(Survey = which_survey) %>% 
+    mutate(Protocol = as.factor(Protocol))
+  
+  ## Choose coefficient for secondary axis scale
+  y_max <- max(tech_counts$cumulative_num_tx, na.rm = TRUE)
+  if (y_max < 50) {
+    coeff <- 1
+  } else if (y_max < 100) {
+    coeff <- 1/2
+  } else {
+    coeff <- 1/4
+  }
+  
+  ## Plot master graph
+  master_graph_plot <- ggplot(master_graph_data, aes(x = Date, y = cumulative_num_tx)) +
+    geom_bar(stat = "unique", width = 1, aes(colour = Protocol, fill = Protocol)) +
+    scale_color_manual(values = c("#97afc9", "#d6e5f0", "#b29056", "#77928b"), na.translate = FALSE) +
+    scale_fill_manual(values = c("#97afc9", "#d6e5f0", "#b29056", "#77928b"), na.translate = FALSE) +
+    new_scale_color() +
+    geom_line(aes(y = score / coeff, colour = Survey), size = 1, na.rm = TRUE) +
+    geom_point(aes(y = score / coeff, colour = Survey), size = 2, na.rm = TRUE) +
+    scale_color_manual(values = c("#364c63", "#d75443"), na.translate = FALSE) +
+    scale_y_continuous("Cumulative Num. Treatments", sec.axis = sec_axis(~.*coeff, "PHQ-9/GAD-7 Scores", breaks = seq(0, 27, by = 5))) +
+    scale_x_date(date_labels = "%Y %b %d") +
+    ggtitle("PHQ-9/GAD-7 shown over Cumulative \n Number of Treatments") +
+    theme_classic() +
+    theme(legend.position = "bottom")
+  
+  ## Display plot
+  print(master_graph_plot)
+}
+
+```
+
+### PHQ-9 (Depression) and GAD-7 (Anxiety)
+```{r, fig.width = 6, fig.height = 4, fig.show = "hold", out.width = "50%", results = "asis"}
+## If patient has PHQ-9 and GAD-7 data, plot both together
+if (nrow(phq9gad7) != 0) {
+  last_date <- max(phq9gad7$Date)
+  phq9gad7_plot <- ggplot(filter(phq9gad7, which_survey == "PHQ9" | which_survey == "GAD7"), aes(x = Date, y = score, colour = which_survey)) +
+    annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 15, ymax = 27, fill = "red", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 10, ymax = 15, fill = "orange", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 5, ymax = 10, fill = "yellow", color = NA, alpha = 0.3) +
+    annotate("text", x = last_date + 2, y = 21, label = "SEVERE", color = "#444444", size = 2) +
+    annotate("text", x = last_date + 2, y = 12.5, label = "MODERATE", color = "#444444", size = 2) +
+    annotate("text", x = last_date + 2, y = 7.5, label = "MILD", color = "#444444", size = 2) +
+    geom_line(size = 1) +
+    geom_point(size = 2) +
+    ggtitle("PHQ-9/GAD-7 over time") +
+    xlab("Date") +
+    ylab("Score") +
+    coord_cartesian(ylim = c(0, 27)) +
+    scale_y_continuous(breaks = seq(0, 25, by = 5)) +
+    scale_x_date(breaks = phq9gad7$Date[seq(1, length(phq9gad7$Date))]) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(legend.title = element_blank()) +
+    theme(legend.position = c(.92, .12),
+          legend.background = element_blank()) +
+    scale_color_manual(values = c("#364c63", "#d75443")) +
+    geom_text(data = slice(filter(phq9gad7, which_survey == "PHQ9" | which_survey == "GAD7"), c(1, 2, n()-1, n())), aes(label = score), position = position_dodge(width = 0.9), vjust = -1, colour = "black")
+    
+  ## Plot PHQ-9 question #9
+  phq9_q9_plot <- ggplot(filter(phq9gad7, which_survey == "PHQ9_Q9"), aes(x = Date, y = score)) +
+    geom_line(size = 1, color = "#d75443") +
+    geom_point(aes(Date, score), size = 2, color = "#d75443") +
+    ggtitle("PHQ-9 Question #9 (Suicidality)") +
+    xlab("Date") +
+    ylab("Score") +
+    coord_cartesian(ylim = c(0, 3)) +
+    scale_y_continuous(breaks = seq(0, 3, by = 1)) +
+    scale_x_date(breaks = phq9gad7$Date[seq(1, length(phq9gad7$Date))]) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(legend.title = element_blank())
+  
+  ## Display plots
+  print(phq9gad7_plot)
+  print(phq9_q9_plot)
+} else {
+  cat("There is no data for this patient.")
+}
+
+```
+
+### BDI-II, MADRS, and QIDS
+```{r, fig.width = 6, fig.height = 4, fig.show = "hold", out.width = "50%", results = "asis"}
+## Filter BDI data
+bdi <- survey_filtered %>% filter(SurveyID == "BDI")
+last_date <- max(bdi$Completion.time)
+bdi <- bdi %>% mutate(Completion.time = as.factor(as.POSIXct(Completion.time, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>% 
+  select(Completion.time, Patient, BDI_)
+
+## If patient has BDI data, produce plot
+if (nrow(bdi) != 0) {
+  ## Prepare x-axis labels
+  bdi_dates <- as.vector(sub(" .*", "", bdi$Completion.time))
+  indices_of_unique_bdi_dates <- c(bdi_dates[1])
+  if (nrow(bdi) > 1) {
+    for (i in 2:length(bdi_dates)) {
+      if (bdi_dates[i] != bdi_dates[i - 1]) {
+        indices_of_unique_bdi_dates <- append(indices_of_unique_bdi_dates, bdi_dates[i])
+      }
+    }
+  }
+  bdi_tick_marks <- c()
+  bdi_tick_marks_labels <- c()
+  for (i in 1:length(indices_of_unique_bdi_dates)) {
+    bdi_tick_marks <- append(bdi_tick_marks, as.vector(bdi$Completion.time)[i])
+    bdi_tick_marks_labels <- append(bdi_tick_marks_labels, bdi_dates[i])
+  }
+  
+  ## Plot BDI data
+  bdi_plot <- ggplot(bdi, aes(x = Completion.time, y = BDI_)) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 29, ymax = 63, fill = "red", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 20, ymax = 29, fill = "orange", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 14, ymax = 20, fill = "yellow", color = NA, alpha = 0.3) +
+    annotate("text", x = last_date, y = 46, label = "SEVERE", color = "#444444", size = 2) +
+    annotate("text", x = last_date, y = 24.5, label = "MODERATE", color = "#444444", size = 2) +
+    annotate("text", x = last_date, y = 17, label = "MILD", color = "#444444", size = 2) +
+    geom_bar(stat = "identity", fill = "#364c63", colour = "#364c63") +
+    coord_cartesian(ylim = c(0, 63)) +
+    scale_x_discrete("Date and Time", breaks = bdi_tick_marks, labels = bdi_tick_marks_labels) +
+    ylab("Score") +
+    ggtitle("Beck Depression Inventory II (BDI-II)") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    geom_text(data = slice(bdi, n()), aes(label = BDI_), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
+
+  ## Display plot
+  print(bdi_plot)
+}
+
+## Load and filter MADRS data
+## Build dataframe of MADRS scores and dates
+madrs_raw <- read.csv("../data/MADRS.csv")
+madrs_raw$Patient <- tolower(madrs_raw$Patient)
+madrs_filtered <- madrs_raw %>% filter(str_detect(selected_patient, paste0("^", Patient, ".*$")))
+
+## If patient has MADRS data, produce plot
+if (!is.na(madrs_filtered[1, 2])) {
+  madrs_scores <- c()
+  madrs_dates <- c()
+  for (i in 2:ncol(madrs_filtered)) {
+    string <- madrs_filtered[1, i]
+    if (string != "") {
+      score <- sub(" .*", "", string)
+      date <- sub("\\)", "", sub(".* \\(", "", string))
+      madrs_scores <- append(madrs_scores, score)
+      madrs_dates <- append(madrs_dates, date)
+    }
+  }
+  madrs <- data.frame(madrs_dates = as.Date(madrs_dates, "%m/%d/%Y"), madrs_scores = as.numeric(madrs_scores))
+
+  ## Plot MADRS data
+  last_datetime <- max(madrs$madrs_dates)
+  madrs_plot <- ggplot(madrs, aes(x = madrs_dates, y = madrs_scores)) +
+    annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 35, ymax = 60, fill = "red", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 20, ymax = 35, fill = "orange", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 7, ymax = 20, fill = "yellow", color = NA, alpha = 0.3) +
+    annotate("text", x = last_datetime + 1, y = 47.5, label = "SEVERE", color = "#444444", size = 2.5) +
+    annotate("text", x = last_datetime + 1, y = 27, label = "MODERATE", color = "#444444", size = 2.5) +
+    annotate("text", x = last_datetime + 1, y = 13, label = "MILD", color = "#444444", size = 2.5) +
+    geom_bar(stat = "identity", fill = "#364c63", color = "#364c63") +
+    coord_cartesian(ylim = c(0, 60)) +
+    scale_x_date(breaks = madrs$madrs_dates[seq(1, length(madrs$madrs_dates))]) +
+    xlab("Date") +
+    ylab("Score") +
+    ggtitle("Montgomery-Asberg Depression Rating Scale (MADRS)") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    geom_text(data = slice(madrs, 1), aes(label = madrs_scores), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
+  
+  ## Display plot
+  print(madrs_plot)
+}
+
+## Filter QIDS data
+qids <- survey_filtered %>% filter(SurveyID == "QIDS")
+last_date <- max(qids$Completion.time)
+qids <- qids %>% mutate(Completion.time = as.factor(as.POSIXct(Completion.time, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>% 
+  select(Completion.time, Patient, QIDS.Reporting)
+
+## If patient has QIDS data, produce plot
+if (nrow(qids) != 0) {
+  ## Prepare x-axis labels
+  qids_dates <- as.vector(sub(" .*", "", qids$Completion.time))
+  indices_of_unique_qids_dates <- c(qids_dates[1])
+  if (nrow(qids) > 1) {
+    for (i in 2:length(qids_dates)) {
+      if (qids_dates[i] != qids_dates[i - 1]) {
+        indices_of_unique_qids_dates <- append(indices_of_unique_qids_dates, qids_dates[i])
+      }
+    }
+  }
+  qids_tick_marks <- c()
+  qids_tick_marks_labels <- c()
+  for (i in 1:length(indices_of_unique_qids_dates)) {
+    qids_tick_marks <- append(qids_tick_marks, as.vector(qids$Completion.time)[i])
+    qids_tick_marks_labels <- append(qids_tick_marks_labels, qids_dates[i])
+  }
+  
+  ## Plot QIDS data
+  qids_plot <- ggplot(qids, aes(x = Completion.time, y = QIDS.Reporting)) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 16, ymax = 27, fill = "red", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 11, ymax = 16, fill = "orange", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 6, ymax = 11, fill = "yellow", color = NA, alpha = 0.3) +
+    annotate("text", x = last_date, y = 21.5, label = "SEVERE", color = "#444444", size = 2) +
+    annotate("text", x = last_date, y = 13.5, label = "MODERATE", color = "#444444", size = 2) +
+    annotate("text", x = last_date, y = 8.5, label = "MILD", color = "#444444", size = 2) +
+    geom_bar(stat = "identity", fill = "#364c63", colour = "#364c63") +
+    coord_cartesian(ylim = c(0, 27)) +
+    scale_x_discrete("Date and Time", breaks = qids_tick_marks, labels = qids_tick_marks_labels) +
+    ylab("Score") +
+    ggtitle("Quick Inventory of Depression Symptomatology (QIDS)") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    geom_text(data = slice(qids, n()), aes(label = QIDS.Reporting), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
+
+  ## Display plot
+  print(qids_plot)
+}
+
+## If patient does not have BDI, MADRS, or QIDS data, print "No data"
+if (nrow(bdi) == 0 && is.na(madrs_filtered[1, 2]) && nrow(qids) == 0) {
+  cat("There is no data for this patient.")
+}
+
+```
+
+### Weekly Mood Averages
+```{r}
+## Filter Pre-TMS Mood data
+dailies_chart <- survey_filtered %>% filter(SurveyID == "Pre-TMS Survey")
+
+if (nrow(dailies_chart) != 0) {
+  ## Convert responses to integers
+  dailies_chart <- dailies_chart %>% rename(Depression = Over.the.last.day..have.you.felt.down..depressed...sad...1.of.7.,
+         Anxiety = Over.the.last.day..have.you.felt.anxious...on.edge...panicked...2.of.7.,
+         Irritability = Over.the.last.day..have.you.felt.irritable...angry...3.of.7.,
+         Happiness = Over.the.last.day..have.you.felt.happy..euphoric...4.of.7.,
+         Peacefulness = Over.the.last.day..have.you.felt.peaceful...mindful...5.of.7.,
+         Hopefulness = Over.the.last.day..have.you.felt.hopeful...optimistic...6.of.7.,
+         Suicidality = Over.the.last.day..have.you.felt.suicidal...7.of.7.,
+         `Date and Time` = Completion.time) %>% 
+  mutate(Depression = as.integer(substr(Depression, 1, 2)),
+         Anxiety = as.integer(substr(Anxiety, 1, 2)),
+         Irritability = as.integer(substr(Irritability, 1, 2)),
+         Happiness = as.integer(substr(Happiness, 1, 2)),
+         Peacefulness = as.integer(substr(Peacefulness, 1, 2)),
+         Hopefulness = as.integer(substr(Hopefulness, 1, 2)),
+         Suicidality = as.integer(substr(Suicidality, 1, 2))) %>% 
+  select(`Date and Time`, Depression, Anxiety, Irritability, Happiness, Peacefulness, Hopefulness, Suicidality)
+
+  ## Calculate week number for each daily survey entry
+  weekly_chart <- dailies_chart %>% mutate(Date = as.Date(`Date and Time`, "%m/%d/%y"),
+                                           `Week Number` = (year(Date) - year(min(Date))) * 52 + week(Date) - week(min(Date))) %>% 
+    rowwise() %>% 
+    mutate(positive_emotions = mean(c(Happiness, Peacefulness, Hopefulness))) %>% 
+    group_by(`Week Number`) %>% 
+    summarise(`Avg. Depression` = round(mean(Depression, na.rm = TRUE), 1),
+              `Avg. Anxiety` = round(mean(Anxiety, na.rm = TRUE), 1),
+              `Avg. Irritability` = round(mean(Irritability, na.rm = TRUE), 1),
+              `Avg. Positive Emotions` = round(mean(positive_emotions, na.rm = TRUE), 1),
+              `Avg. Suicidality` = round(mean(Suicidality, na.rm = TRUE), 1)) %>% 
+    select(`Week Number`, `Avg. Depression`, `Avg. Anxiety`, `Avg. Irritability`, `Avg. Positive Emotions`, `Avg. Suicidality`)
+}
+
+```
+
+```{r, results = "asis"}
+## Create continuous color keys
+assign_color_negative_continuous <- function(x) {
+  if (x == 0) {
+    return("#ffffff !important")
+  } else if (between(x, 0, 0.5)) {
+    return("#feeae6 !important")
+  } else if (between(x, 0.5, 1)) {
+    return("#fcd5cd !important")
+  } else if (between(x, 1, 1.5)) {
+    return("#f9c0b4 !important")
+  } else if (between(x, 1.5, 2)) {
+    return("#f5ab9d !important")
+  } else if (between(x, 2, 2.5)) {
+    return("#ef9685 !important")
+  } else if (between(x, 2.5, 3)) {
+    return("#e8816f !important")
+  } else if (between(x, 3, 3.5)) {
+    return("#e06b58 !important")
+  } else if (between(x, 3.5, 4)) {
+    return("#d75443 !important")
+  } else {
+    return("#cccccc !important")
+  }
+}
+assign_color_positive_continuous <- function(x) {
+  if (x == 0) {
+    return("#ffffff !important")
+  } else if (between(x, 0, 0.5)) {
+    return("#edf1f0 !important")
+  } else if (between(x, 0.5, 1)) {
+    return("#dce3e1 !important")
+  } else if (between(x, 1, 1.5)) {
+    return("#cad5d2 !important")
+  } else if (between(x, 1.5, 2)) {
+    return("#b9c7c3 !important")
+  } else if (between(x, 2, 2.5)) {
+    return("#a8bab5 !important")
+  } else if (between(x, 2.5, 3)) {
+    return("#98aca7 !important")
+  } else if (between(x, 3, 3.5)) {
+    return("#879f99 !important")
+  } else if (between(x, 3.5, 4)) {
+    return("#77928b !important")
+  } else {
+    return("#cccccc !important")
+  }
+}
+
+## If patient has Pre-TMS Mood data, produce color-coded weekly average chart
+if (nrow(dailies_chart) != 0) {
+  fixed_width <- 90
+  negative_formatter_continuous <- formatter("span", style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = paste(fixed_width, "px", sep=""), "background-color" = sapply(x, assign_color_negative_continuous)))
+  positive_formatter_continuous <- formatter("span", style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = paste(fixed_width, "px", sep=""), "background-color" = sapply(x, assign_color_positive_continuous)))
+  weekly_chart_image <- formattable(weekly_chart,
+                                    align = c("l", "c", "c", "c", "c", "c"),
+                                    list(`Week Number` = formatter("span",  style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = "150px")),
+                                         `Avg. Depression` = negative_formatter_continuous,
+                                         `Avg. Anxiety` = negative_formatter_continuous,
+                                         `Avg. Irritability` = negative_formatter_continuous,
+                                         `Avg. Positive Emotions` = positive_formatter_continuous,
+                                         `Avg. Suicidality` = negative_formatter_continuous))
+  
+  ## Display chart
+  weekly_chart_image
+} else {
+  cat("There is no data for this patient.")
+}
+
+```
+
+### Daily Mood Self-Report
+```{r, results = "asis"}
+## Create discrete color keys
+assign_color_negative <- function(x) {
+  if (x == 0) {
+    return("#ffffff !important")
+  } else if (x == 1) {
+    return("#f3cbc6 !important")
+  } else if (x == 2) {
+    return("#eba9a1 !important")
+  } else if (x == 3) {
+    return("#e3877b !important")
+  } else if (x == 4) {
+    return("#d75443 !important")
+  } else {
+    return("#cccccc !important")
+  }
+}
+assign_color_positive <- function(x) {
+  if (x == 0) {
+    return("#ffffff !important")
+  } else if (x == 1) {
+    return("#d6dedc !important")
+  } else if (x == 2) {
+    return("#bbc8c5 !important")
+  } else if (x == 3) {
+    return("#9fb2ad !important")
+  } else if (x == 4) {
+    return("#77928b !important")
+  } else {
+    return("#cccccc !important")
+  }
+}
+
+## If patient has Pre-TMS Mood data, produce color-coded daily mood chart
+if (nrow(dailies_chart) != 0) {
+  fixed_width <- 90
+  negative_formatter <- formatter("span", style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = paste(fixed_width, "px", sep=""), "background-color" = sapply(x, assign_color_negative)))
+  positive_formatter <- formatter("span", style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = paste(fixed_width, "px", sep=""), "background-color" = sapply(x, assign_color_positive)))
+  dailies_chart_image <- formattable(dailies_chart,
+                                     align = c("l", "c", "c", "c", "c", "c", "c", "c"),
+                                     list(`Date and Time` = formatter("span",  style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = paste(fixed_width, "px", sep=""))),
+                                          Depression = negative_formatter,
+                                          Anxiety = negative_formatter,
+                                          Irritability = negative_formatter,
+                                          Happiness = positive_formatter,
+                                          Peacefulness = positive_formatter,
+                                          Hopefulness = positive_formatter,
+                                          Suicidality = negative_formatter))
+  
+  ## Display chart
+  dailies_chart_image
+} else {
+  cat("There is no data for this patient.")
+}
+
+```
+
+### Daily Mood Averages
+```{r}
+## Filter hourly data
+hourlies_chart <- survey_filtered %>% filter(SurveyID == "Hourly Mood Survey")
+
+if (nrow(hourlies_chart) != 0) {
+  ## Convert responses to integers
+  hourlies_chart <- hourlies_chart %>% rename(Depression = Over.the.last.hour..have.you.felt.down...depressed..sad.,
+           Anxiety = Over.the.last.hour..have.you.felt.anxious..on.edge..panicked.,
+           Irritability = Over.the.last.hour..have.you.felt.irritable...angry.,
+           Happiness = Over.the.last.hour..have.you.felt.happy...euphoric.,
+           Peacefulness = Over.the.last.hour..have.you.felt.peaceful...mindful.,
+           Hopefulness = Over.the.last.hour..have.you.felt.hopeful...optimistic.,
+           Suicidality = Over.the.last.hour..have.you.felt.suicidal.,
+           `Date and Time` = Completion.time) %>% 
+    mutate(Depression = as.integer(substr(Depression, 1, 2)),
+           Anxiety = as.integer(substr(Anxiety, 1, 2)),
+           Irritability = as.integer(substr(Irritability, 1, 2)),
+           Happiness = as.integer(substr(Happiness, 1, 2)),
+           Peacefulness = as.integer(substr(Peacefulness, 1, 2)),
+           Hopefulness = as.integer(substr(Hopefulness, 1, 2)),
+           Suicidality = as.integer(substr(Suicidality, 1, 2))) %>% 
+    select(`Date and Time`, Depression, Anxiety, Irritability, Happiness, Peacefulness, Hopefulness, Suicidality)
+  
+  # Calculate averages for each day of hourly surveys
+  daily_average_chart <- hourlies_chart %>% mutate(Date = as.Date(`Date and Time`, "%m/%d/%y")) %>% 
+    rowwise() %>% 
+    mutate(positive_emotions = mean(c(Happiness, Peacefulness, Hopefulness))) %>% 
+    group_by(Date) %>% 
+    summarise(`Avg. Depression` = round(mean(Depression, na.rm = TRUE), 1),
+              `Avg. Anxiety` = round(mean(Anxiety, na.rm = TRUE), 1),
+              `Avg. Irritability` = round(mean(Irritability, na.rm = TRUE), 1),
+              `Avg. Positive Emotions` = round(mean(positive_emotions, na.rm = TRUE), 1),
+              `Avg. Suicidality` = round(mean(Suicidality, na.rm = TRUE), 1)) %>% 
+    select(Date, `Avg. Depression`, `Avg. Anxiety`, `Avg. Irritability`, `Avg. Positive Emotions`, `Avg. Suicidality`)
+}
+
+```
+
+```{r, results = "asis"}
+## If patient has hourly data, produce color-coded daily average chart
+if (nrow(hourlies_chart) != 0) {
+  fixed_width <- 90
+  daily_average_chart_image <- formattable(daily_average_chart,
+                                           align = c("l", "c", "c", "c", "c", "c"),
+                                           list(Date = formatter("span",  style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = "150px")),
+                                                `Avg. Depression` = negative_formatter_continuous,
+                                                `Avg. Anxiety` = negative_formatter_continuous,
+                                                `Avg. Irritability` = negative_formatter_continuous,
+                                                `Avg. Positive Emotions` = positive_formatter_continuous,
+                                                `Avg. Suicidality` = negative_formatter_continuous))
+
+  ## Display chart
+  daily_average_chart_image
+} else {
+  cat("There is no data for this patient.")
+}
+
+```
+
+### Hourly Mood Self-Report
+```{r, results = "asis"}
+## If patient has hourly data, produce color-coded hourly mood chart
+if (nrow(hourlies_chart) != 0) {
+  fixed_width <- 90
+  hourlies_chart_image <- formattable(hourlies_chart,
+                                      align = c("l", "c", "c", "c", "c", "c", "c", "c"),
+                                      list(`Date and Time` = formatter("span",  style = x ~ style(display = "block", "border-radius" = "4px", "font-size:11px", width = paste(fixed_width, "px", sep=""))),
+                                           Depression = negative_formatter,
+                                           Anxiety = negative_formatter,
+                                           Irritability = negative_formatter,
+                                           Happiness = positive_formatter,
+                                           Peacefulness = positive_formatter,
+                                           Hopefulness = positive_formatter,
+                                           Suicidality = negative_formatter))
+  
+  ## Display chart
+  hourlies_chart_image
+} else {
+  cat("There is no data for this patient.")
+}
+
+```
+
+### Sleep and Suicidality Self-Report
+```{r, fig.width = 6, fig.height = 4, fig.show = "hold", out.width = "50%", results = "asis"}
+## Filter Pre-TMS Sleep and Suicide data
+## Convert responses to integers
+pre_tms_other <- survey_filtered %>% filter(SurveyID == "Pre-TMS Survey") %>% 
+  rename(sleep_hours = How.many.hours.did.you.sleep.last.night.,
+         sleep_quality = How.was.your.sleep.quality.,
+         pre_tms_suicide = Over.the.last.day..did.you.have.any.thoughts.about.hurting.yourself.) %>% 
+  mutate(sleep_hours = as.integer(sleep_hours),
+         sleep_quality = as.integer(substr(sleep_quality, 1, 2)),
+         pre_tms_suicide = as.integer(substr(pre_tms_suicide, 1, 2)),
+         Date = as.factor(Date)) %>% 
+  select(Start.time, Date, Patient, sleep_hours, sleep_quality, pre_tms_suicide)
+
+## If patient has Pre-TMS Survey data, produce charts
+if (nrow(pre_tms_other) != 0) {
+  ## Plot Pre-TMS Sleep data
+  sleep_plot <- ggplot(pre_tms_other) +
+    geom_bar(aes(x = Date, y = sleep_hours), stat = "identity", fill = "#364c63", colour = "#364c63") +
+    geom_line(aes(x = Date, y = sleep_quality), size = 1, color = "#d75443", group = 1) +
+    geom_point(aes(x = Date, y = sleep_quality), size = 2, color = "#d75443") +
+    scale_y_continuous("Number of Hours Slept", sec.axis = sec_axis(~., "Sleep Quality", breaks = c(0, 1, 2, 3, 4), labels = c("Very Poor", "Poor", "Fair", "Good", "Very Good"))) +
+    xlab("Date") +
+    ggtitle("How many hours did you sleep last night? \n How was your sleep quality?") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  ## Plot Pre-TMS Suicide data
+  pre_tms_suicide_plot <- ggplot(pre_tms_other, aes(x = Date, y = pre_tms_suicide)) +
+    geom_bar(aes(y = pre_tms_suicide), stat = "identity", fill = "#d75443", colour = "#d75443") +
+    coord_cartesian(ylim = c(0, 4)) +
+    scale_y_continuous("Response", breaks = c(0, 1, 2, 3, 4), labels = c("Not at all", "A little bit", "Somewhat", "Quite a bit", "Very much")) +
+    xlab("Date") +
+    ggtitle("Over the last day, did you have any thoughts about \n hurting yourself?") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  ## Display plots
+  print(sleep_plot)
+  print(pre_tms_suicide_plot)
+} else {
+  cat("There is no data for this patient.")
+}
+
+```
