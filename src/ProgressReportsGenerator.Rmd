@@ -25,6 +25,7 @@ library(knitr)
 library(lubridate)
 library(stringr)
 library(tidyr)
+library(googlesheets4)
 
 ```
 
@@ -33,14 +34,14 @@ library(tidyr)
 ## Remove, rename, and clean columns
 ## Remove entries with "xx" in the ID column
 ## Prevent case sensitivity in patient IDs by changing all IDs to lowercase
-tech_raw <- read.csv("../data/Tech.csv") %>% select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
+tech_raw <- read_sheet("tech_sheet_url") %>% select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
   mutate(Date = as.Date(What.is.the.date.of.the.treatment., "%m/%d/%y"),
          Pt.ID = tolower(Pt.ID),
          Tx = as.integer(Tx),
          X = as.integer(X)) %>% 
   rename(Planned_Course = X) %>% 
   filter(Column1 != "xx")
-survey_raw <- read.csv("../data/Survey.csv") %>% select(-"Txt.Sum", -"Email", -"Name", -contains(".of.16."),
+survey_raw <- read_sheet("survey_sheet_url") %>% select(-"Txt.Sum", -"Email", -"Name", -contains(".of.16."),
                                                 -contains(".of.21."), -contains(".of.9."), -contains(".if.none."),
                                                 -starts_with("Have."), -starts_with("If.")) %>% 
   mutate(Date = as.Date(Completion.time, "%m/%d/%y"),
@@ -77,7 +78,7 @@ if (nrow(tech_filtered) == 0) {
 ```{r, results = "asis"}
 ## Print patient demographics, session number, and planned course for use during rounds
 if (rounds == TRUE) {
-  demographics <- read.csv("../data/Demographics.csv") %>% 
+  demographics <- read_sheet("demographics_sheet_url") %>% 
     mutate(Patient.ID = tolower(Patient.ID)) %>% 
     rename(Diagnoses = Diagnoses..write.out.in.full.) %>% 
     filter(Patient.ID %in% selected_patient)
@@ -260,7 +261,7 @@ if (nrow(bdi) != 0) {
 
 ## Load and filter MADRS data
 ## Build dataframe of MADRS scores and dates
-madrs_raw <- read.csv("../data/MADRS.csv")
+madrs_raw <- read_sheet("MADRS_sheet_url")
 madrs_raw$Patient <- tolower(madrs_raw$Patient)
 madrs_filtered <- madrs_raw %>% filter(str_detect(selected_patient, paste0("^", Patient, ".*$")))
 
