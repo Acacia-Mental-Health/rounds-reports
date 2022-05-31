@@ -20,7 +20,7 @@ pkgLoad <- function( packages = "std" ) {
                        "stats", "microbenchmark", "ggplot2", "readxl",
                        "feather", "googlesheets4", "readr", "DT", "knitr",
                        "rmarkdown", "Rcpp", "formattable", "ggnewscale",
-                       "htmltools", "lubridate", "stringr", "tidyr"
+                       "htmltools", "lubridate", "stringr", "tidyr", "assertive"
         )
     }
 
@@ -57,21 +57,15 @@ survey_raw <- read_sheet("1AFGLSMBQyUNUL0p84mZ-xusaHbLrAveUp-uGTxWl3r4", "Sheet2
 ##   rename(SurveyID = "What survey(s) would you like to complete?",
 ##          GAD7 = GAD7_)
 ## print(args[1])
-survey_entry <- survey_raw[survey_raw$ID == args[1],]
-
-print(class(survey_entry))
-
-## survey_raw_csv <- read.csv("../data/Survey.csv") %>% select(-"Txt.Sum", -"Email", -"Name", -contains(".of.16."),
-##                                                 -contains(".of.21."), -contains(".of.9."), -contains(".if.none."),
-##                                                 -starts_with("Have."), -starts_with("If.")) %>%
-##   mutate(Date = as.Date(Completion.time, "%m/%d/%y"),
-##          Patient = tolower(Patient)) %>%
-##   rename(SurveyID = What.survey.s..would.you.like.to.complete.,
-##          GAD7 = GAD7_)
-
-## survey_filtered <- survey_raw %>% filter(Patient %in% "AnNo") %>% filter(SurveyID == "PHQ9")
-
-print(sprintf("Date: %s
+numbers_only <- function(x) !grepl("\\D", x)
+for (id in args) {
+    if (!numbers_only(id))
+        printf("%s not valid ID", id)
+    else {
+        survey_entry <- survey_raw[survey_raw$ID == id,]
+        print(class(survey_entry)) ## Debug
+        output_file <- sprintf("../output/%s.txt", id)
+cat(sprintf("Date: %s
 Stimulation Parameters:
 Machine: MagVenture MagPro R30 with Cool-B65 coil.
 xx total sessions each separated by at least 45 minutes.
@@ -108,4 +102,6 @@ survey_entry$'Technician\'s Full Name',
 survey_entry$'Who is the supervising psychiatrist?',
 survey_entry$'What is the supervising level?',
 survey_entry$'Tx',
-survey_entry$'Planned Course'))
+survey_entry$'Planned Course'), file=output_file,fill=FALSE)
+        }
+}
