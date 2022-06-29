@@ -1,10 +1,10 @@
 ---
-title: "`r display_name` <img src=\"Logo.png\" height=\"80px\" style=\"float: right;\"/>"
+title: "`r patient_id` <img src=\"Logo.png\" height=\"80px\" style=\"float: right;\"/>"
 date: "Report generated `r format(Sys.time(), '%d %b %Y')`"
 output: html_document
 params:
   selected_patient: selected_patient
-  display_name: display_name
+  patient_id: patient_id
   earliest_date: earliest_date
   rounds: rounds
 ---
@@ -25,37 +25,119 @@ library(knitr)
 library(lubridate)
 library(stringr)
 library(tidyr)
+library(tidyverse)
 library(googlesheets4)
 
 ```
 
 ```{r}
+selected_patient <- tolower(selected_patient)
+```
+
+```{r}
+## options(gargle_oauth_email = "***REMOVED***")
+## gs4_deauth(clear_cache = TRUE, verbose = TRUE)
+gs4_auth(email = "***REMOVED***")
+## gs4_deauth()
+## gs4_auth()
 ## Load data
 ## Remove, rename, and clean columns
 ## Remove entries with "xx" in the ID column
 ## Prevent case sensitivity in patient IDs by changing all IDs to lowercase
-tech_raw <- read_sheet("tech_sheet_url") %>% select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
-  mutate(Date = as.Date(What.is.the.date.of.the.treatment., "%m/%d/%y"),
-         Pt.ID = tolower(Pt.ID),
-         Tx = as.integer(Tx),
-         X = as.integer(X)) %>% 
-  rename(Planned_Course = X) %>% 
-  filter(Column1 != "xx")
-survey_raw <- read_sheet("survey_sheet_url") %>% select(-"Txt.Sum", -"Email", -"Name", -contains(".of.16."),
-                                                -contains(".of.21."), -contains(".of.9."), -contains(".if.none."),
-                                                -starts_with("Have."), -starts_with("If.")) %>% 
-  mutate(Date = as.Date(Completion.time, "%m/%d/%y"),
-         Patient = tolower(Patient)) %>% 
-  rename(SurveyID = What.survey.s..would.you.like.to.complete.,
-         GAD7 = GAD7_)
+tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)") 
+# %>%
+#     rename(timestamp = 'What is the date of the treatment?',
+#            Tx = 'Treatment #',
+#            Planned_Course = 'Planned Course') %>%
+#     mutate(
+#         Date = as.Date(as.character(timestamp), "%m/%d/%Y"),
+#         Tx = as.integer(Tx)) %>%
+#     unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+
+
+tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)") 
+# %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+    # rename(timestamp = 'What is the date of the treatment?',
+    #        Tx = 'Treatment #',
+    #        Planned_Course = 'Planned Course') %>%
+    # mutate(
+    #     Date = as.Date(as.character(timestamp), "%m/%d/%Y"),
+    #     Tx = as.integer(as.character(Tx))) %>%
+    # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+## sprintf("2: %i", ncol(tech_raw_old_2))
+
+tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020") 
+# %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
+    # rename(timestamp = 'What is the date of the treatment?',
+    #        Tx = 'Treatment #',
+    #        Planned_Course = 'Planned Course') %>%
+    # filter(Tx != "NA") %>%
+    # mutate(
+    #     Date = as.Date(timestamp, "%m/%d/%Y"),
+    #     Tx = as.integer(as.character(Tx))) %>%
+    # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+## sprintf("3: %i", ncol(tech_raw_old_3))
+
+tech_raw_current <- read_sheet("***REMOVED***", sheet="Form Responses 1") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+    # rename(timestamp = 'What is the date of the treatment?',
+    #        Tx = 'Treatment #',
+    #        Planned_Course = 'Planned Course') %>%
+    # filter(Tx != "NA") %>%
+    # mutate(
+    #     Date = as.Date(Timestamp, "%m/%d/%Y"),
+    #     Tx = as.integer(Tx)) %>%
+    # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+## sprintf("4: %i", ncol(tech_raw_current))
+
+
+tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
+    rename(timestamp = 'What is the date of the treatment?',
+           Tx = 'Treatment #',
+           Planned_Course = 'Planned Course') %>%
+    filter(Tx != "NA") %>%
+    unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE) %>%
+    mutate(
+        Date = as.Date(timestamp),
+        Tx = as.integer(as.character(Tx)),
+        pt_id = tolower(pt_id)
+        ) %>%
+  rename(Protocol = 'What is the ordered protocol?')
+
+## print(tech_raw)
+
+survey_raw_old <- read_sheet("***REMOVED***", sheet="Results") %>%
+    rename(pt_id = 'Patient Code') %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
+  rename(Timestamp = 'Start time') %>%
+  unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
+    mutate(Date = as.Date(Timestamp, "%m/%d/%y"),
+           pt_id = tolower(pt_id))
+
+survey_raw_current <- read_sheet("***REMOVED***", sheet="Main Sheet") %>%
+  rename(pt_id = 'Patient Code') %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
+  rename(Timestamp = 'Start time') %>%
+  unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
+  mutate(PHQ_Q9 = as.integer(PHQ_Q9)) %>%
+  rename(MADRS = 'MADRS-SR',
+         PreTMS = 'Pre-TMS')
 
 ```
 
-
 ```{r}
 ## Filter for selected patient
-tech_filtered <- tech_raw %>% filter(Pt.ID %in% selected_patient)
-survey_filtered <- survey_raw %>% filter(Patient %in% selected_patient)
+tech_filtered <- tech_raw %>% filter(tolower(pt_id) %in% selected_patient)
+survey_filtered <- survey_raw %>% filter(pt_id %in% selected_patient)
 
 ## Throw error if there is no tech data after applying patient filter (no survey data is OK)
 if (nrow(tech_filtered) == 0) {
@@ -78,11 +160,12 @@ if (nrow(tech_filtered) == 0) {
 ```{r, results = "asis"}
 ## Print patient demographics, session number, and planned course for use during rounds
 if (rounds == TRUE) {
-  demographics <- read_sheet("demographics_sheet_url") %>% 
-    mutate(Patient.ID = tolower(Patient.ID)) %>% 
-    rename(Diagnoses = Diagnoses..write.out.in.full.) %>% 
-    filter(Patient.ID %in% selected_patient)
-  sprintf("The patient (ID = '%s') is a %i-year-old %s with %s. The patient has completed %i of %i planned sessions.", demographics$Patient.ID, demographics$Age, demographics$Gender, demographics$Diagnoses, tail(tech_filtered, 1)$Tx, tail(tech_filtered, 1)$Planned_Course)
+  demographics <- read_sheet("***REMOVED***", sheet="Patient Demographics") %>% 
+    rename(pt_id = 'Patient ID') %>%
+    mutate(pt_id = tolower(pt_id)) %>% 
+    rename(Diagnoses = 'Diagnoses (write out in full)') %>% 
+    filter(pt_id %in% tolower(selected_patient))
+  sprintf("The patient (ID = '%s') is a %i-year-old %s with %s. The patient has completed %i of %s planned sessions.", demographics$pt_id, demographics$Age, demographics$Gender, demographics$Diagnoses, tail(tech_filtered, 1)$Tx, as.character(tail(tech_filtered, 1)$Planned_Course))
 }
 
 ```
@@ -90,7 +173,7 @@ if (rounds == TRUE) {
 ```{r}
 ## Count number of treatments on each day
 ## Take cumulative sum of treatments
-tech_counts <- tech_filtered %>% select(Date, Pt.ID, Tx, Planned_Course, Protocol) %>% 
+tech_counts <- tech_filtered %>% select(Date, pt_id, Tx, Planned_Course, Protocol) %>% 
   group_by(Date) %>% 
   mutate(num_tx_on_day = n()) %>% 
   slice(n()) %>% 
@@ -100,10 +183,10 @@ tech_counts <- tech_filtered %>% select(Date, Pt.ID, Tx, Planned_Course, Protoco
 ## Filter PHQ-9/GAD-7 data
 ## Collapse scores from the same date into one row
 ## Change data into long form
-phq9gad7 <- survey_filtered %>% filter(SurveyID == "PHQ9" | SurveyID == "GAD7") %>%
-  group_by(Date, Patient) %>%
+phq9gad7 <- survey_filtered %>% filter(!is.na(PHQ9) | !is.na(GAD7)) %>%
+  group_by(Date, pt_id) %>%
   summarise(PHQ9 = PHQ9[which(!is.na(PHQ9))[1]],
-            PHQ9_Q9 = PHQ.Q9_[which(!is.na(PHQ.Q9_))[1]],
+            PHQ9_Q9 = PHQ_Q9[which(!is.na(PHQ_Q9))[1]],
             GAD7 = GAD7[which(!is.na(GAD7))[1]]) %>% 
   ungroup() %>% 
   pivot_longer(c("PHQ9", "GAD7", "PHQ9_Q9"), names_to = "which_survey", values_to = "score") %>% 
@@ -122,7 +205,7 @@ if (nrow(phq9gad7) != 0) {
   all_dates <- data.frame(Date = seq(min(tech_counts$Date), max(tech_counts$Date), by = "days"))
   master_graph_data <- merge(filter(phq9gad7, which_survey == "PHQ9" | which_survey == "GAD7"), all_dates, by = "Date", all = TRUE, no.dups = FALSE)
   master_graph_data <- merge(tech_counts, master_graph_data, by = "Date", all = TRUE, no.dups = FALSE) %>% 
-    select(-Patient, -Tx, -num_tx_on_day)
+    select(-pt_id.x, -pt_id.y, -Tx, -num_tx_on_day)
   master_graph_data$Protocol[master_graph_data$Protocol == ""] <- NA
   master_graph_data <- master_graph_data %>%  fill(cumulative_num_tx, .direction = "down") %>%
     fill(Protocol, .direction = "down") %>% 
@@ -214,15 +297,15 @@ if (nrow(phq9gad7) != 0) {
 ### BDI-II, MADRS, and QIDS
 ```{r, fig.width = 6, fig.height = 4, fig.show = "hold", out.width = "50%", results = "asis"}
 ## Filter BDI data
-bdi <- survey_filtered %>% filter(SurveyID == "BDI")
-last_date <- max(bdi$Completion.time)
-bdi <- bdi %>% mutate(Completion.time = as.factor(as.POSIXct(Completion.time, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>% 
-  select(Completion.time, Patient, BDI_)
+bdi <- survey_filtered %>% filter(!is.na(BDI))
+last_date <- max(bdi$Date)
+# bdi <- bdi %>% mutate(Timestamp = as.factor(as.POSIXct(Timestamp, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>%
+bdi <- bdi %>% select(Timestamp, pt_id, BDI)
 
 ## If patient has BDI data, produce plot
 if (nrow(bdi) != 0) {
   ## Prepare x-axis labels
-  bdi_dates <- as.vector(sub(" .*", "", bdi$Completion.time))
+  bdi_dates <- as.Date(bdi$Timestamp)
   indices_of_unique_bdi_dates <- c(bdi_dates[1])
   if (nrow(bdi) > 1) {
     for (i in 2:length(bdi_dates)) {
@@ -234,26 +317,30 @@ if (nrow(bdi) != 0) {
   bdi_tick_marks <- c()
   bdi_tick_marks_labels <- c()
   for (i in 1:length(indices_of_unique_bdi_dates)) {
-    bdi_tick_marks <- append(bdi_tick_marks, as.vector(bdi$Completion.time)[i])
+    bdi_tick_marks <- append(bdi_tick_marks, as.Date(bdi$Timestamp)[i])
     bdi_tick_marks_labels <- append(bdi_tick_marks_labels, bdi_dates[i])
   }
   
   ## Plot BDI data
-  bdi_plot <- ggplot(bdi, aes(x = Completion.time, y = BDI_)) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 29, ymax = 63, fill = "red", color = NA, alpha = 0.3) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 20, ymax = 29, fill = "orange", color = NA, alpha = 0.3) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 14, ymax = 20, fill = "yellow", color = NA, alpha = 0.3) +
-    annotate("text", x = last_date, y = 46, label = "SEVERE", color = "#444444", size = 2) +
-    annotate("text", x = last_date, y = 24.5, label = "MODERATE", color = "#444444", size = 2) +
-    annotate("text", x = last_date, y = 17, label = "MILD", color = "#444444", size = 2) +
+  bdi_plot <- ggplot(bdi, aes(x = Timestamp, y = BDI)) +
+    annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 29, ymax = 63, fill = "red", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 20, ymax = 29, fill = "orange", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 14, ymax = 20, fill = "yellow", color = NA, alpha = 0.3) +
+    annotate("text", x = as.POSIXct(Inf), y = 46, label = "SEVERE", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(Inf), y = 24.5, label = "MODERATE", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(Inf), y = 17, label = "MILD", color = "#444444", size = 2) +
     geom_bar(stat = "identity", fill = "#364c63", colour = "#364c63") +
     coord_cartesian(ylim = c(0, 63)) +
-    scale_x_discrete("Date and Time", breaks = bdi_tick_marks, labels = bdi_tick_marks_labels) +
-    ylab("Score") +
-    ggtitle("Beck Depression Inventory II (BDI-II)") +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    geom_text(data = slice(bdi, n()), aes(label = BDI_), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
+    # scale_x_discrete("Date and Time", breaks = bdi_tick_marks, labels = bdi_tick_marks_labels) +
+    # scale_x_date() +
+    # xlab("Date and Time") +
+    ylab("Score") +
+    xlab("Date and Time") +
+    ggtitle("Beck Depression Inventory II (BDI-II)") +
+    scale_x_datetime(breaks = as.POSIXct(bdi_tick_marks))
+    # geom_text(data = slice(bdi, n()), aes(label = BDI), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
 
   ## Display plot
   print(bdi_plot)
@@ -261,12 +348,16 @@ if (nrow(bdi) != 0) {
 
 ## Load and filter MADRS data
 ## Build dataframe of MADRS scores and dates
-madrs_raw <- read_sheet("MADRS_sheet_url")
-madrs_raw$Patient <- tolower(madrs_raw$Patient)
-madrs_filtered <- madrs_raw %>% filter(str_detect(selected_patient, paste0("^", Patient, ".*$")))
+# madrs_raw <- read_sheet("MADRS_sheet_url")
+# madrs_raw$Patient <- tolower(madrs_raw$Patient)
+# madrs_filtered <- madrs_raw %>% filter(str_detect(selected_patient, paste0("^", Patient, ".*$")))
+MADRS_SR <- survey_filtered %>% filter(!is.na(MADRS))
+last_date <- max(bdi$Timestamp)
+# bdi <- bdi %>% mutate(Timestamp = as.factor(as.POSIXct(Timestamp, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>%
+MADRS_SR <- MADRS_SR %>% select(Timestamp, pt_id, MADRS)
 
 ## If patient has MADRS data, produce plot
-if (!is.na(madrs_filtered[1, 2])) {
+if (nrow(MADRS_SR)) {
   madrs_scores <- c()
   madrs_dates <- c()
   for (i in 2:ncol(madrs_filtered)) {
@@ -304,15 +395,16 @@ if (!is.na(madrs_filtered[1, 2])) {
 }
 
 ## Filter QIDS data
-qids <- survey_filtered %>% filter(SurveyID == "QIDS")
-last_date <- max(qids$Completion.time)
-qids <- qids %>% mutate(Completion.time = as.factor(as.POSIXct(Completion.time, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>% 
-  select(Completion.time, Patient, QIDS.Reporting)
+qids <- survey_filtered %>% filter(!is.na(QIDS))
+last_date <- max(qids$Date)
+# qids <- qids %>% mutate(Timestamp = as.POSIXct(Timestamp, format = "%m/%d/%y %I:%M %p", tz = "UTC")) %>%
+qids <- qids %>% select(Timestamp, pt_id, QIDS)
 
 ## If patient has QIDS data, produce plot
 if (nrow(qids) != 0) {
   ## Prepare x-axis labels
-  qids_dates <- as.vector(sub(" .*", "", qids$Completion.time))
+  # qids_dates <- as.vector(sub(" .*", "", qids$Timestamp))
+  qids_dates <- as.Date(qids$Timestamp)
   indices_of_unique_qids_dates <- c(qids_dates[1])
   if (nrow(qids) > 1) {
     for (i in 2:length(qids_dates)) {
@@ -324,26 +416,27 @@ if (nrow(qids) != 0) {
   qids_tick_marks <- c()
   qids_tick_marks_labels <- c()
   for (i in 1:length(indices_of_unique_qids_dates)) {
-    qids_tick_marks <- append(qids_tick_marks, as.vector(qids$Completion.time)[i])
+    qids_tick_marks <- append(qids_tick_marks, as.Date(qids$Timestamp)[i])
     qids_tick_marks_labels <- append(qids_tick_marks_labels, qids_dates[i])
   }
   
   ## Plot QIDS data
-  qids_plot <- ggplot(qids, aes(x = Completion.time, y = QIDS.Reporting)) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 16, ymax = 27, fill = "red", color = NA, alpha = 0.3) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 11, ymax = 16, fill = "orange", color = NA, alpha = 0.3) +
-    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 6, ymax = 11, fill = "yellow", color = NA, alpha = 0.3) +
-    annotate("text", x = last_date, y = 21.5, label = "SEVERE", color = "#444444", size = 2) +
-    annotate("text", x = last_date, y = 13.5, label = "MODERATE", color = "#444444", size = 2) +
-    annotate("text", x = last_date, y = 8.5, label = "MILD", color = "#444444", size = 2) +
+  qids_plot <- ggplot(qids, aes(x = Timestamp, y = QIDS)) +
+    annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 16, ymax = 27, fill = "red", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 11, ymax = 16, fill = "orange", color = NA, alpha = 0.3) +
+    annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 6, ymax = 11, fill = "yellow", color = NA, alpha = 0.3) +
+    annotate("text", x = as.POSIXct(Inf), y = 21.5, label = "SEVERE", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(Inf), y = 13.5, label = "MODERATE", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(Inf), y = 8.5, label = "MILD", color = "#444444", size = 2) +
     geom_bar(stat = "identity", fill = "#364c63", colour = "#364c63") +
+    # geom_point() +
     coord_cartesian(ylim = c(0, 27)) +
-    scale_x_discrete("Date and Time", breaks = qids_tick_marks, labels = qids_tick_marks_labels) +
-    ylab("Score") +
-    ggtitle("Quick Inventory of Depression Symptomatology (QIDS)") +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    geom_text(data = slice(qids, n()), aes(label = QIDS.Reporting), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
+    ylab("Score") +
+    xlab("Date and Time") +
+    ggtitle("Quick Inventory of Depression Symptomatology (QIDS)") +
+    scale_x_datetime(breaks = as.POSIXct(qids_tick_marks), labels = qids_tick_marks_labels)
 
   ## Display plot
   print(qids_plot)
@@ -359,18 +452,19 @@ if (nrow(bdi) == 0 && is.na(madrs_filtered[1, 2]) && nrow(qids) == 0) {
 ### Weekly Mood Averages
 ```{r}
 ## Filter Pre-TMS Mood data
-dailies_chart <- survey_filtered %>% filter(SurveyID == "Pre-TMS Survey")
+dailies_chart <- survey_filtered %>% filter(PreTMS=="Y")
 
 if (nrow(dailies_chart) != 0) {
   ## Convert responses to integers
-  dailies_chart <- dailies_chart %>% rename(Depression = Over.the.last.day..have.you.felt.down..depressed...sad...1.of.7.,
-         Anxiety = Over.the.last.day..have.you.felt.anxious...on.edge...panicked...2.of.7.,
-         Irritability = Over.the.last.day..have.you.felt.irritable...angry...3.of.7.,
-         Happiness = Over.the.last.day..have.you.felt.happy..euphoric...4.of.7.,
-         Peacefulness = Over.the.last.day..have.you.felt.peaceful...mindful...5.of.7.,
-         Hopefulness = Over.the.last.day..have.you.felt.hopeful...optimistic...6.of.7.,
-         Suicidality = Over.the.last.day..have.you.felt.suicidal...7.of.7.,
-         `Date and Time` = Completion.time) %>% 
+  dailies_chart <- dailies_chart %>% rename(
+    Depression = "Over the last day, have you felt down/ depressed / sad? [1 of 7]",
+    Anxiety = "Over the last day, have you felt anxious / on edge / panicked? [2 of 7]",
+    Irritability = "Over the last day, have you felt irritable / angry? [3 of 7]",
+    Happiness = "Over the last day, have you felt happy /euphoric? [4 of 7]",
+    Peacefulness = "Over the last day, have you felt peaceful / mindful? [5 of 7]",
+    Hopefulness = "Over the last day, have you felt hopeful / optimistic? [6 of 7]",
+    Suicidality = "Over the last day, have you felt suicidal? [7 of 7]",
+    `Date and Time` = Timestamp) %>% 
   mutate(Depression = as.integer(substr(Depression, 1, 2)),
          Anxiety = as.integer(substr(Anxiety, 1, 2)),
          Irritability = as.integer(substr(Irritability, 1, 2)),
@@ -381,7 +475,7 @@ if (nrow(dailies_chart) != 0) {
   select(`Date and Time`, Depression, Anxiety, Irritability, Happiness, Peacefulness, Hopefulness, Suicidality)
 
   ## Calculate week number for each daily survey entry
-  weekly_chart <- dailies_chart %>% mutate(Date = as.Date(`Date and Time`, "%m/%d/%y"),
+  weekly_chart <- dailies_chart %>% mutate(Date = as.Date(`Date and Time`),
                                            `Week Number` = (year(Date) - year(min(Date))) * 52 + week(Date) - week(min(Date))) %>% 
     rowwise() %>% 
     mutate(positive_emotions = mean(c(Happiness, Peacefulness, Hopefulness))) %>% 
@@ -528,18 +622,19 @@ if (nrow(dailies_chart) != 0) {
 ### Daily Mood Averages
 ```{r}
 ## Filter hourly data
-hourlies_chart <- survey_filtered %>% filter(SurveyID == "Hourly Mood Survey")
+hourlies_chart <- survey_filtered %>% filter(!is.na(`Over the last hour, have you felt down / depressed / sad?`))
 
 if (nrow(hourlies_chart) != 0) {
   ## Convert responses to integers
-  hourlies_chart <- hourlies_chart %>% rename(Depression = Over.the.last.hour..have.you.felt.down...depressed..sad.,
-           Anxiety = Over.the.last.hour..have.you.felt.anxious..on.edge..panicked.,
-           Irritability = Over.the.last.hour..have.you.felt.irritable...angry.,
-           Happiness = Over.the.last.hour..have.you.felt.happy...euphoric.,
-           Peacefulness = Over.the.last.hour..have.you.felt.peaceful...mindful.,
-           Hopefulness = Over.the.last.hour..have.you.felt.hopeful...optimistic.,
-           Suicidality = Over.the.last.hour..have.you.felt.suicidal.,
-           `Date and Time` = Completion.time) %>% 
+  hourlies_chart <- hourlies_chart %>% rename(
+    Depression = "Over the last hour, have you felt down / depressed / sad?",
+    Anxiety = "Over the last hour, have you felt anxious/ on edge/ panicked?",
+    Irritability = "Over the last hour, have you felt irritable / angry?",
+    Happiness = "Over the last hour, have you felt happy / euphoric?",
+    Peacefulness = "Over the last hour, have you felt peaceful / mindful?",
+    Hopefulness = "Over the last hour, have you felt hopeful / optimistic?",
+    Suicidality = "Over the last hour, have you felt suicidal?",
+    `Date and Time` = Timestamp) %>% 
     mutate(Depression = as.integer(substr(Depression, 1, 2)),
            Anxiety = as.integer(substr(Anxiety, 1, 2)),
            Irritability = as.integer(substr(Irritability, 1, 2)),
@@ -550,7 +645,7 @@ if (nrow(hourlies_chart) != 0) {
     select(`Date and Time`, Depression, Anxiety, Irritability, Happiness, Peacefulness, Hopefulness, Suicidality)
   
   # Calculate averages for each day of hourly surveys
-  daily_average_chart <- hourlies_chart %>% mutate(Date = as.Date(`Date and Time`, "%m/%d/%y")) %>% 
+  daily_average_chart <- hourlies_chart %>% mutate(Date = as.Date(`Date and Time`)) %>% 
     rowwise() %>% 
     mutate(positive_emotions = mean(c(Happiness, Peacefulness, Hopefulness))) %>% 
     group_by(Date) %>% 
@@ -613,15 +708,15 @@ if (nrow(hourlies_chart) != 0) {
 ```{r, fig.width = 6, fig.height = 4, fig.show = "hold", out.width = "50%", results = "asis"}
 ## Filter Pre-TMS Sleep and Suicide data
 ## Convert responses to integers
-pre_tms_other <- survey_filtered %>% filter(SurveyID == "Pre-TMS Survey") %>% 
-  rename(sleep_hours = How.many.hours.did.you.sleep.last.night.,
-         sleep_quality = How.was.your.sleep.quality.,
-         pre_tms_suicide = Over.the.last.day..did.you.have.any.thoughts.about.hurting.yourself.) %>% 
+pre_tms_other <- survey_filtered %>% filter(PreTMS=="Y") %>% 
+  rename(sleep_hours = "How many hours did you sleep last night?",
+         sleep_quality = "How was your sleep quality?",
+         pre_tms_suicide = "Over the last day, did you have any thoughts about hurting yourself?") %>% 
   mutate(sleep_hours = as.integer(sleep_hours),
          sleep_quality = as.integer(substr(sleep_quality, 1, 2)),
          pre_tms_suicide = as.integer(substr(pre_tms_suicide, 1, 2)),
-         Date = as.factor(Date)) %>% 
-  select(Start.time, Date, Patient, sleep_hours, sleep_quality, pre_tms_suicide)
+         Date = as.factor(Timestamp)) %>% 
+  select(Timestamp, Date, pt_id, sleep_hours, sleep_quality, pre_tms_suicide)
 
 ## If patient has Pre-TMS Survey data, produce charts
 if (nrow(pre_tms_other) != 0) {

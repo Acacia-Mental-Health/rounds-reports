@@ -2,10 +2,9 @@
 
 ## Each item in "list_to_generate" is a list consisting of:
 ## 1. vector containing ALL of a single patient's IDs written in all lowercase. Format: c("gest24", "vist34")
-## 2. string of patient's name to display as report title. Format: "Emily Jusuf"
-## 3. (optional) date of earliest survey and tech data to include. Format: "yyyy-mm-dd"
+## 2. (optional) date of earliest survey and tech data to include. Format: "yyyy-mm-dd"
 list_to_generate <- list( 
-  list(c("ipsum10", "lorum10"),"Lorum Ipsum", "2011-01-01")
+  list(c("ShWa86"), "2011-01-01")
 )
 
 ## Setting "rounds" to TRUE will display a patient's demographics, session number, and planned course
@@ -23,7 +22,7 @@ pkgLoad <- function( packages = "std" ) {
                        "stats", "microbenchmark", "ggplot2", "readxl",
                        "feather", "googlesheets4", "readr", "DT", "knitr",
                        "rmarkdown", "Rcpp", "formattable", "ggnewscale",
-                       "htmltools", "lubridate", "stringr", "tidyr"
+                       "htmltools", "lubridate", "stringr", "tidyr", "tidyverse"
         )
     }
 
@@ -52,16 +51,18 @@ pkgLoad()
 
 for (item in list_to_generate) {
   selected_patient <- item[[1]]
-  display_name <- item[[2]]
+  patient_id <- item[[1]][1]
   if (length(item) > 2) {
     earliest_date <- item[[3]]
   } else {
     earliest_date <- NA
   }
-  rmarkdown::render("ProgressReportsGenerator.Rmd",
-                    output_file = paste0("../tmp/", str_to_title(substr(selected_patient[[1]], 1, 2)), str_to_title(substr(selected_patient[[1]], 3, 4)), "_Report_", Sys.Date(), ".html"),
+  rmarkdown::render("src/ProgressReportsGenerator.Rmd",
+                    output_file = paste0("../output/", str_to_title(substr(selected_patient[[1]], 1, 2)), str_to_title(substr(selected_patient[[1]], 3, 4)), "_Report_", Sys.Date(), ".html"),
                     params = list(selected_patient = selected_patient,
-                                  display_name = display_name,
+                                  patient_id = patient_id,
                                   earliest_date = earliest_date,
                                   rounds = rounds))
 }
+
+
