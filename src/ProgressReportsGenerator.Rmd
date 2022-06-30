@@ -298,7 +298,7 @@ if (nrow(phq9gad7) != 0) {
 ```{r, fig.width = 6, fig.height = 4, fig.show = "hold", out.width = "50%", results = "asis"}
 ## Filter BDI data
 bdi <- survey_filtered %>% filter(!is.na(BDI))
-last_date <- max(bdi$Date)
+last_date <- max(bdi$Timestamp)
 # bdi <- bdi %>% mutate(Timestamp = as.factor(as.POSIXct(Timestamp, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>%
 bdi <- bdi %>% select(Timestamp, pt_id, BDI)
 
@@ -326,9 +326,9 @@ if (nrow(bdi) != 0) {
     annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 29, ymax = 63, fill = "red", color = NA, alpha = 0.3) +
     annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 20, ymax = 29, fill = "orange", color = NA, alpha = 0.3) +
     annotate("rect", xmin = as.POSIXct(-Inf), xmax = as.POSIXct(Inf), ymin = 14, ymax = 20, fill = "yellow", color = NA, alpha = 0.3) +
-    annotate("text", x = as.POSIXct(Inf), y = 46, label = "SEVERE", color = "#444444", size = 2) +
-    annotate("text", x = as.POSIXct(Inf), y = 24.5, label = "MODERATE", color = "#444444", size = 2) +
-    annotate("text", x = as.POSIXct(Inf), y = 17, label = "MILD", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(last_date) + 2, y = 46, label = "SEVERE", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(last_date) + 2, y = 24.5, label = "MODERATE", color = "#444444", size = 2) +
+    annotate("text", x = as.POSIXct(last_date) + 2, y = 17, label = "MILD", color = "#444444", size = 2) +
     geom_bar(stat = "identity", fill = "#364c63", colour = "#364c63") +
     coord_cartesian(ylim = c(0, 63)) +
     theme_classic() +
@@ -339,7 +339,7 @@ if (nrow(bdi) != 0) {
     ylab("Score") +
     xlab("Date and Time") +
     ggtitle("Beck Depression Inventory II (BDI-II)") +
-    scale_x_datetime(breaks = as.POSIXct(bdi_tick_marks))
+    scale_x_datetime(breaks = as.POSIXct(bdi_tick_marks), labels = bdi_tick_marks_labels)
     # geom_text(data = slice(bdi, n()), aes(label = BDI), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
 
   ## Display plot
@@ -715,7 +715,7 @@ pre_tms_other <- survey_filtered %>% filter(PreTMS=="Y") %>%
   mutate(sleep_hours = as.integer(sleep_hours),
          sleep_quality = as.integer(substr(sleep_quality, 1, 2)),
          pre_tms_suicide = as.integer(substr(pre_tms_suicide, 1, 2)),
-         Date = as.factor(Timestamp)) %>% 
+         Date = as.factor(as.Date(Timestamp))) %>% 
   select(Timestamp, Date, pt_id, sleep_hours, sleep_quality, pre_tms_suicide)
 
 ## If patient has Pre-TMS Survey data, produce charts
