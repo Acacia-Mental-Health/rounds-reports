@@ -225,8 +225,8 @@ if (nrow(phq9gad7) != 0) {
   ## Plot master graph
   master_graph_plot <- ggplot(master_graph_data, aes(x = Date, y = cumulative_num_tx)) +
     geom_bar(stat = "unique", width = 1, aes(colour = Protocol, fill = Protocol)) +
-    scale_color_manual(values = c("#97afc9", "#d6e5f0", "#b29056", "#77928b"), na.translate = FALSE) +
-    scale_fill_manual(values = c("#97afc9", "#d6e5f0", "#b29056", "#77928b"), na.translate = FALSE) +
+    scale_color_manual(values = c("#97afc9", "#d6e5f0", "#b29056", "#77928b", "#FDFD96"), na.translate = FALSE) +
+    scale_fill_manual(values = c("#97afc9", "#d6e5f0", "#b29056", "#77928b","#FDFD96"), na.translate = FALSE) +
     new_scale_color() +
     geom_line(aes(y = score / coeff, colour = Survey), size = 1, na.rm = TRUE) +
     geom_point(aes(y = score / coeff, colour = Survey), size = 2, na.rm = TRUE) +
