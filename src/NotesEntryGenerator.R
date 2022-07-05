@@ -40,19 +40,17 @@ options(gargle_oauth_email = "***REMOVED***")
 
 numbers_only <- function(x) !grepl("\\D", x)
 
-generate_output <- function(date) {
-    survey_entries <- tech_raw[as.Date(tech_raw$Timestamp) == date,]
-    if (!(nrow(survey_entries) == 0)) {
+generate_output <- function(filtered_data, patient) {
     ## print(class(survey_entry)) ## Debug
-    output_file <- sprintf("../output/%s.html", as.Date(date, origin="1970-01-01"))
+    output_file <- sprintf("../output/%s.html", patient)
     file.create(output_file)
     cat(sprintf("<!DOCTYPE html>
 <html>
   <head>
     <meta charset=\"UTF-8\">
-    <title>Entries for Date: %s</title>
+    <title>Entries for Patient: %s</title>
   </head>
-  <body>\n", as.Date(date, origin="1970-01-01")), file=output_file, fill=FALSE)
+  <body>\n", patient), file=output_file, fill=FALSE)
     notes_template <- "\n<hr>\n\nDate: %s <br />
 Stimulation Parameters:<br />
 Machine: MagVenture MagPro R30 with Cool-B65 coil.<br />
@@ -70,8 +68,8 @@ Supervision: Supervised by %s. %s.<br />
 <br />
 Course:  Session # %s of %s planned.<br />
 /////-----Patient Mood Surveys-----/////\n"
-    for (i in 1:nrow(survey_entries)) {
-      entry <- survey_entries[i,]
+    for (i in 1:nrow(filtered_data)) {
+      entry <- filtered_data[i,]
       output <- sprintf(notes_template, entry$Timestamp,
                         if(entry$'Did you re-threshold since the last session?'=="Yes") sprintf("Motor Threshold today was measured to be %s%% MO. It was performed by %s due to %s.<br />",
                                                                                  entry$'What is the new motor threshold?',
@@ -96,30 +94,38 @@ Course:  Session # %s of %s planned.<br />
           if (output != "")
               cat(output, file=output_file, fill=FALSE, append=TRUE)
           else
-              cat(sprintf("Error in entry ID, %i\n", id), file=error_file, fill=FALSE, append=TRUE)
+              cat(sprintf("Error in entry for patient, %i\n", patient), file=error_file, fill=FALSE, append=TRUE)
     }
     cat("</body>
 </html>", file=output_file, fill=FALSE, append=TRUE)
-    }
 }
 
 
 cat(sprintf("Error log for %s:\n", Sys.time()), file=error_file, fill=FALSE, append=FALSE)
+gs4_auth(email = "***REMOVED***")
+## gs4_deauth()
+## gs4_auth()
+## Load data
+## Remove, rename, and clean columns
+## Remove entries with "xx" in the ID column
+## Prevent case sensitivity in patient IDs by changing all IDs to lowercase
+tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)")
 
-tech_raw <- read_sheet("***REMOVED***", "Query")
 
-for (date in args) {
-    if (grepl("-", date) && !is.na(as.Date(date, "%m/%d/%y")) && !is.na(as.Date(str_extract(date, "[/0-9]+$"), "%m/%d/%y"))) {
-        print(sprintf("Output range of dates: %s", date))
-        range_bounds <- as.Date(str_split(date, "-")[[1]], "%m/%d/%y")
-        for (i in range_bounds[1]:range_bounds[2]) {
-            generate_output(i)
-        }
-    } else if (is.na(as.Date(date, "%m/%d/%y"))) {
-        print("%s not valid ID", id)
-    } else {
-        print(sprintf("Output notes for entry date %s", date))
-        generate_output(as.Date(date, "%m/%d/%y"))
+tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)") 
+
+tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020") 
+
+tech_raw_current <- read_sheet("***REMOVED***", sheet="Query")
+
+tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
+  unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+
+for (patient in args) {
+  tech_filtered <- tech_raw %>% filter(tolower(pt_id) == tolower(patient))
+    if (nrow(tech_filtered) > 0) {
+        print(sprintf("Output sessions for %s", patient))
+        generate_output(tech_filtered, patient)
     }
 }
 
