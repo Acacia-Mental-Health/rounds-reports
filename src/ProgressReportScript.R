@@ -4,7 +4,7 @@
 ## 1. vector containing ALL of a single patient's IDs written in all lowercase. Format: c("gest24", "vist34")
 ## 2. (optional) date of earliest survey and tech data to include. Format: "yyyy-mm-dd"
 list_to_generate <- list( 
-  list(c("ShWa86"), "2011-01-01")
+  list(c("aabb11"), "AaBb11")
 )
 
 ## Setting "rounds" to TRUE will display a patient's demographics, session number, and planned course
@@ -49,9 +49,102 @@ pkgLoad <- function( packages = "std" ) {
 ## Ensure all packages are loaded/installed.
 pkgLoad()
 
+gs4_auth(email = "***REMOVED***")
+tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)") 
+# %>%
+#     rename(timestamp = 'What is the date of the treatment?',
+#            Tx = 'Treatment #',
+#            Planned_Course = 'Planned Course') %>%
+#     mutate(
+#         Date = as.Date(as.character(timestamp), "%m/%d/%Y"),
+#         Tx = as.integer(Tx)) %>%
+#     unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+
+
+tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)") 
+# %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+    # rename(timestamp = 'What is the date of the treatment?',
+    #        Tx = 'Treatment #',
+    #        Planned_Course = 'Planned Course') %>%
+    # mutate(
+    #     Date = as.Date(as.character(timestamp), "%m/%d/%Y"),
+    #     Tx = as.integer(as.character(Tx))) %>%
+    # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+## sprintf("2: %i", ncol(tech_raw_old_2))
+
+tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020") 
+# %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
+    # rename(timestamp = 'What is the date of the treatment?',
+    #        Tx = 'Treatment #',
+    #        Planned_Course = 'Planned Course') %>%
+    # filter(Tx != "NA") %>%
+    # mutate(
+    #     Date = as.Date(timestamp, "%m/%d/%Y"),
+    #     Tx = as.integer(as.character(Tx))) %>%
+    # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+## sprintf("3: %i", ncol(tech_raw_old_3))
+
+tech_raw_current <- read_sheet("***REMOVED***", sheet="Form Responses 1") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+    # rename(timestamp = 'What is the date of the treatment?',
+    #        Tx = 'Treatment #',
+    #        Planned_Course = 'Planned Course') %>%
+    # filter(Tx != "NA") %>%
+    # mutate(
+    #     Date = as.Date(Timestamp, "%m/%d/%Y"),
+    #     Tx = as.integer(Tx)) %>%
+    # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
+## sprintf("4: %i", ncol(tech_raw_current))
+
+
+tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
+    rename(timestamp = 'What is the date of the treatment?',
+           Tx = 'Treatment #',
+           Planned_Course = 'Planned Course') %>%
+    filter(Tx != "NA") %>%
+    unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE) %>%
+    mutate(
+        Date = as.Date(timestamp),
+        Tx = as.integer(as.character(Tx)),
+        pt_id = tolower(pt_id)
+        ) %>%
+  rename(Protocol = 'What is the ordered protocol?')
+
+## print(tech_raw)
+
+survey_raw_old <- read_sheet("***REMOVED***", sheet="Results") %>%
+    rename(pt_id = 'Patient Code') %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
+  rename(Timestamp = 'Start time') %>%
+  unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
+    mutate(Date = as.Date(Timestamp, "%m/%d/%y"),
+           pt_id = tolower(pt_id))
+
+survey_raw_current <- read_sheet("***REMOVED***", sheet="Main Sheet") %>%
+  rename(pt_id = 'Patient Code') %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
+  rename(Timestamp = 'Start time') %>%
+  unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
+  mutate(PHQ_Q9 = as.integer(PHQ_Q9)) %>%
+  rename(MADRS = 'MADRS-SR',
+         PreTMS = 'Pre-TMS')
+
+
+
+madrs_raw <- read_sheet("https://docs.google.com/spreadsheets/d/***REMOVED***")
+
 for (item in list_to_generate) {
   selected_patient <- item[[1]]
-  patient_id <- item[[1]][1]
+  patient_id <- item[[2]]
   if (length(item) > 2) {
     earliest_date <- item[[3]]
   } else {
