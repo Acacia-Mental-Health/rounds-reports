@@ -18,7 +18,7 @@ pkgLoad <- function( packages = "std" ) {
 
     if( length( packages ) == 1L && packages == "std" ) {
         packages <- c( "data.table", "chron", "plyr", "dplyr", "shiny",
-                       "shinyjs", "parallel", "devtools", "doMC", "utils",
+                       "shinyjs", "parallel", "doMC", "utils",
                        "stats", "microbenchmark", "ggplot2", "readxl",
                        "feather", "googlesheets4", "readr", "DT", "knitr",
                        "rmarkdown", "Rcpp", "formattable", "ggnewscale",
@@ -50,7 +50,7 @@ pkgLoad <- function( packages = "std" ) {
 pkgLoad()
 
 gs4_auth(email = "***REMOVED***")
-tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)") 
+tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)", range="B:AF")
 # %>%
 #     rename(timestamp = 'What is the date of the treatment?',
 #            Tx = 'Treatment #',
@@ -61,7 +61,7 @@ tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2
 #     unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 
 
-tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)") 
+tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)", range="B:AF")
 # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
@@ -72,7 +72,7 @@ tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("2: %i", ncol(tech_raw_old_2))
 
-tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020") 
+tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020", range="B:AF")
 # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
@@ -119,7 +119,7 @@ survey_raw_old <- read_sheet("***REMOVED***", sheet="Results") %>%
 survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
   rename(Timestamp = 'Start time') %>%
   unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
-    mutate(Date = as.Date(Timestamp, "%m/%d/%y"),
+    mutate(Date = as.Date(Timestamp),
            pt_id = tolower(pt_id))
 
 survey_raw_current <- read_sheet("***REMOVED***", sheet="Main Sheet") %>%

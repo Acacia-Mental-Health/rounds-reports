@@ -6,7 +6,7 @@ pkgLoad <- function( packages = "std" ) {
 
     if( length( packages ) == 1L && packages == "std" ) {
         packages <- c( "data.table", "chron", "plyr", "dplyr", "shiny",
-                       "shinyjs", "parallel", "devtools", "doMC", "utils",
+                       "shinyjs", "parallel", "doMC", "utils",
                        "stats", "microbenchmark", "ggplot2", "readxl",
                        "feather", "googlesheets4", "readr", "DT", "knitr",
                        "rmarkdown", "Rcpp", "formattable", "ggnewscale",
@@ -121,8 +121,10 @@ tech_raw_current <- read_sheet("***REMOVED***", sheet="Query")
 tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
   unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 
-for (patient in args) {
-  tech_filtered <- tech_raw %>% filter(tolower(pt_id) == tolower(patient))
+for (patient in tail(args, -2)) {
+  tech_filtered <- tech_raw %>% filter(tolower(pt_id) == tolower(patient),
+                                       Timestamp >= as.Date(args[1], "%m/%d/%y"),
+                                       as.Date(args[2], "%m/%d/%y") >= Timestamp)
     if (nrow(tech_filtered) > 0) {
         print(sprintf("Output sessions for %s", patient))
         generate_output(tech_filtered, patient)

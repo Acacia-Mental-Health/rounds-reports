@@ -262,7 +262,7 @@ if (nrow(phq9gad7) != 0) {
     scale_y_continuous(breaks = seq(0, 25, by = 5)) +
     scale_x_date(breaks = phq9gad7$Date[seq(1, length(phq9gad7$Date))]) +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     theme(legend.title = element_blank()) +
     theme(legend.position = c(.92, .12),
           legend.background = element_blank()) +
@@ -280,7 +280,7 @@ if (nrow(phq9gad7) != 0) {
     scale_y_continuous(breaks = seq(0, 3, by = 1)) +
     scale_x_date(breaks = phq9gad7$Date[seq(1, length(phq9gad7$Date))]) +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     theme(legend.title = element_blank())
   
   ## Display plots
@@ -330,7 +330,7 @@ if (nrow(bdi) != 0) {
     geom_bar(stat = "identity", fill = "#364c63", colour = "#364c63") +
     coord_cartesian(ylim = c(0, 63)) +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     # scale_x_discrete("Date and Time", breaks = bdi_tick_marks, labels = bdi_tick_marks_labels) +
     # scale_x_date() +
     # xlab("Date and Time") +
@@ -382,7 +382,7 @@ if (!is.na(madrs_filtered[1, 2])) {
     ylab("Score") +
     ggtitle("Montgomery-Asberg Depression Rating Scale (MADRS)") +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     geom_text(data = slice(madrs, 1), aes(label = madrs_scores), position = position_dodge(width = 0.9), vjust = 2, colour = "white")
   
   ## Display plot
@@ -427,7 +427,7 @@ if (nrow(qids) != 0) {
     # geom_point() +
     coord_cartesian(ylim = c(0, 27)) +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     ylab("Score") +
     xlab("Date and Time") +
     ggtitle("Quick Inventory of Depression Symptomatology (QIDS)") +
@@ -724,7 +724,7 @@ if (nrow(pre_tms_other) != 0) {
     xlab("Date") +
     ggtitle("How many hours did you sleep last night? \n How was your sleep quality?") +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
   
   ## Plot Pre-TMS Suicide data
   pre_tms_suicide_plot <- ggplot(pre_tms_other, aes(x = Date, y = pre_tms_suicide)) +
@@ -734,7 +734,7 @@ if (nrow(pre_tms_other) != 0) {
     xlab("Date") +
     ggtitle("Over the last day, did you have any thoughts about \n hurting yourself?") +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
   
   ## Display plots
   print(sleep_plot)
