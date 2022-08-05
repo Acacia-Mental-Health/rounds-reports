@@ -31,105 +31,7 @@ library(googlesheets4)
 ```
 
 ```{r}
-selected_patient <- tolower(selected_patient)
-```
-
-```{r}
-## Load data
-## Remove, rename, and clean columns
-## Remove entries with "xx" in the ID column
-## Prevent case sensitivity in patient IDs by changing all IDs to lowercase
-# tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)")
-# # %>%
-# #     rename(timestamp = 'What is the date of the treatment?',
-# #            Tx = 'Treatment #',
-# #            Planned_Course = 'Planned Course') %>%
-# #     mutate(
-# #         Date = as.Date(as.character(timestamp), "%m/%d/%Y"),
-# #         Tx = as.integer(Tx)) %>%
-# #     unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
-# 
-# 
-# tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)") 
-# # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
-#     # rename(timestamp = 'What is the date of the treatment?',
-#     #        Tx = 'Treatment #',
-#     #        Planned_Course = 'Planned Course') %>%
-#     # mutate(
-#     #     Date = as.Date(as.character(timestamp), "%m/%d/%Y"),
-#     #     Tx = as.integer(as.character(Tx))) %>%
-#     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
-# ## sprintf("2: %i", ncol(tech_raw_old_2))
-# 
-# tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020") 
-# # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
-#     # rename(timestamp = 'What is the date of the treatment?',
-#     #        Tx = 'Treatment #',
-#     #        Planned_Course = 'Planned Course') %>%
-#     # filter(Tx != "NA") %>%
-#     # mutate(
-#     #     Date = as.Date(timestamp, "%m/%d/%Y"),
-#     #     Tx = as.integer(as.character(Tx))) %>%
-#     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
-# ## sprintf("3: %i", ncol(tech_raw_old_3))
-# 
-# tech_raw_current <- read_sheet("***REMOVED***", sheet="Form Responses 1") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
-#     # rename(timestamp = 'What is the date of the treatment?',
-#     #        Tx = 'Treatment #',
-#     #        Planned_Course = 'Planned Course') %>%
-#     # filter(Tx != "NA") %>%
-#     # mutate(
-#     #     Date = as.Date(Timestamp, "%m/%d/%Y"),
-#     #     Tx = as.integer(Tx)) %>%
-#     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
-# ## sprintf("4: %i", ncol(tech_raw_current))
-# 
-# 
-# tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
-#     rename(timestamp = 'What is the date of the treatment?',
-#            Tx = 'Treatment #',
-#            Planned_Course = 'Planned Course') %>%
-#     filter(Tx != "NA") %>%
-#     unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE) %>%
-#     mutate(
-#         Date = as.Date(timestamp),
-#         Tx = as.integer(as.character(Tx)),
-#         pt_id = tolower(pt_id)
-#         ) %>%
-#   rename(Protocol = 'What is the ordered protocol?')
-# 
-# ## print(tech_raw)
-# 
-# survey_raw_old <- read_sheet("***REMOVED***", sheet="Results") %>%
-#     rename(pt_id = 'Patient Code') %>%
-#     mutate(Date = as.Date(Timestamp),
-#            pt_id = tolower(pt_id))
-# 
-# survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
-#   rename(Timestamp = 'Start time') %>%
-#   unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
-#     mutate(Date = as.Date(Timestamp, "%m/%d/%y"),
-#            pt_id = tolower(pt_id))
-# 
-# survey_raw_current <- read_sheet("***REMOVED***", sheet="Main Sheet") %>%
-#   rename(pt_id = 'Patient Code') %>%
-#     mutate(Date = as.Date(Timestamp),
-#            pt_id = tolower(pt_id))
-# 
-# survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
-#   rename(Timestamp = 'Start time') %>%
-#   unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
-#     mutate(Date = as.Date(Timestamp),
-#            pt_id = tolower(pt_id))
-# 
-# survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
-#   mutate(PHQ_Q9 = as.integer(PHQ_Q9)) %>%
-#   rename(MADRS = 'MADRS-SR',
-#          PreTMS = 'Pre-TMS')
-# 
-# 
-# 
-# madrs_raw <- read_sheet("https://docs.google.com/spreadsheets/d/***REMOVED***")
+# selected_patient <- tolower(selected_patient)
 ```
 
 ```{r}
@@ -158,12 +60,12 @@ if (nrow(tech_filtered) == 0) {
 ```{r, results = "asis"}
 ## Print patient demographics, session number, and planned course for use during rounds
 if (rounds == TRUE) {
-  demographics <- read_sheet("***REMOVED***", sheet="Patient Demographics") %>% 
+  pt_demographics <- demographics %>% 
     rename(pt_id = 'Patient ID') %>%
     mutate(pt_id = tolower(pt_id)) %>% 
     rename(Diagnoses = 'Diagnoses (write out in full)') %>% 
-    filter(pt_id %in% tolower(selected_patient))
-  sprintf("The patient (ID = '%s') is a %i-year-old %s with %s. The patient has completed %i of %s planned sessions.", demographics$pt_id, demographics$Age, demographics$Gender, demographics$Diagnoses, tail(tech_filtered, 1)$Tx, as.character(tail(tech_filtered, 1)$Planned_Course))
+    filter(pt_id %like% tolower(selected_patient))
+  sprintf("The patient (ID = '%s') is a %i-year-old %s with %s. The patient has completed %i of %s planned sessions.", pt_demographics$pt_id, pt_demographics$Age, pt_demographics$Gender, pt_demographics$Diagnoses, tail(tech_filtered, 1)$Tx, as.character(tail(tech_filtered, 1)$Planned_Course))
 }
 
 ```

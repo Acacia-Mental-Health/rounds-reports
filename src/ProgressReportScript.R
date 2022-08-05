@@ -4,7 +4,7 @@
 ## 1. vector containing ALL of a single patient's IDs written in all lowercase. Format: c("gest24", "vist34")
 ## 2. (optional) date of earliest survey and tech data to include. Format: "yyyy-mm-dd"
 list_to_generate <- list( 
-  list(c("aabb11"), "AaBb11")
+  list("AaSc56")
 )
 
 ## Setting "rounds" to TRUE will display a patient's demographics, session number, and planned course
@@ -48,6 +48,8 @@ pkgLoad <- function( packages = "std" ) {
 
 ## Ensure all packages are loaded/installed.
 pkgLoad()
+
+demographics <- read_sheet("***REMOVED***", sheet="Patient Demographics") 
 
 gs4_auth(email = "***REMOVED***")
 tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)", range="B:AF")
@@ -142,16 +144,23 @@ survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
 
 madrs_raw <- read_sheet("https://docs.google.com/spreadsheets/d/***REMOVED***")
 
+fetch_patient_id_aliases <- function(demographics, id) {
+  lower_id <- tolower(id)
+  aliases <- demographics[tolower(demographics$`Patient ID`) %like% lower_id, ]
+  return(str_split(tolower(aliases$`Patient ID`[1]), ", "))
+}
+
+
 for (item in list_to_generate) {
-  selected_patient <- item[[1]]
-  patient_id <- item[[2]]
-  if (length(item) > 2) {
-    earliest_date <- item[[3]]
+  patient_id <- item[[1]]
+  selected_patient <- fetch_patient_id_aliases(demographics, patient_id)[[1]]
+  if (length(item) > 1) {
+    earliest_date <- item[[2]]
   } else {
     earliest_date <- NA
   }
   rmarkdown::render("src/ProgressReportsGenerator.Rmd",
-                    output_file = paste0("../output/", str_to_title(substr(selected_patient[[1]], 1, 2)), str_to_title(substr(selected_patient[[1]], 3, 4)), "_Report_", Sys.Date(), ".html"),
+                    output_file = paste0("../output/", patient_id, "_Report_", Sys.Date(), ".html"),
                     params = list(selected_patient = selected_patient,
                                   patient_id = patient_id,
                                   earliest_date = earliest_date,
