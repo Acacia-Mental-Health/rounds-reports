@@ -1,18 +1,6 @@
-## EDIT CODE BELOW THIS LINE
-
-## Each item in "list_to_generate" is a list consisting of:
-## 1. vector containing ALL of a single patient's IDs written in all lowercase. Format: c("gest24", "vist34")
-## 2. (optional) date of earliest survey and tech data to include. Format: "yyyy-mm-dd"
-list_to_generate <- list( 
-  list("AaSc56")
-)
-
-## Setting "rounds" to TRUE will display a patient's demographics, session number, and planned course
-## at the top of the report.
-## Only do this if "Demographics.csv" AND session numbers in "Tech.csv" are fully updated!
-rounds <- TRUE
-
-## DO NOT EDIT CODE BELOW THIS LINE
+#!/usr/bin/env Rscript
+source("./src/ProgressReportSetup.R")
+readRenviron(".Renviron")
 
 pkgLoad <- function( packages = "std" ) {
 
@@ -49,10 +37,10 @@ pkgLoad <- function( packages = "std" ) {
 ## Ensure all packages are loaded/installed.
 pkgLoad()
 
-demographics <- read_sheet("***REMOVED***", sheet="Patient Demographics") 
+demographics <- read_sheet(Sys.getenv("DEMOGRAPHICS"), sheet="Patient Demographics")
 
-gs4_auth(email = "***REMOVED***")
-tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 (3)", range="B:AF")
+gs4_auth(email = Sys.getenv("GOOGLE_EMAIL"))
+tech_raw_old_1 <- read_sheet(Sys.getenv("TECH_OLD"), sheet="TMS Technician Data Input 2021 (3)", range="B:AF")
 # %>%
 #     rename(timestamp = 'What is the date of the treatment?',
 #            Tx = 'Treatment #',
@@ -63,7 +51,7 @@ tech_raw_old_1 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2
 #     unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 
 
-tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2021 1 (1)", range="B:AF")
+tech_raw_old_2 <- read_sheet(Sys.getenv("TECH_OLD"), sheet="TMS Technician Data Input 2021 1 (1)", range="B:AF")
 # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
@@ -74,7 +62,7 @@ tech_raw_old_2 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input 2
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("2: %i", ncol(tech_raw_old_2))
 
-tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input Summer 2020", range="B:AF")
+tech_raw_old_3 <- read_sheet(Sys.getenv("TECH_OLD"), sheet="TMS Technician Data Input Summer 2020", range="B:AF")
 # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>% 
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
@@ -86,7 +74,7 @@ tech_raw_old_3 <- read_sheet("***REMOVED***", sheet="TMS Technician Data Input S
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("3: %i", ncol(tech_raw_old_3))
 
-tech_raw_current <- read_sheet("***REMOVED***", sheet="Form Responses 1") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Form Responses 1") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
     #        Planned_Course = 'Planned Course') %>%
@@ -113,25 +101,19 @@ tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_curre
 
 ## print(tech_raw)
 
-survey_raw_old <- read_sheet("***REMOVED***", sheet="Results") %>%
+survey_raw_old <- read_sheet(Sys.getenv("SURVEY_OLD"), sheet="Results") %>%
     rename(pt_id = 'Patient Code') %>%
     mutate(Date = as.Date(Timestamp),
            pt_id = tolower(pt_id))
 
-survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
+survey_hourly_raw_old <- read_sheet(Sys.getenv("SURVEY_OLD"), sheet="Hourly") %>%
   rename(Timestamp = 'Start time') %>%
   unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
     mutate(Date = as.Date(Timestamp),
            pt_id = tolower(pt_id))
 
-survey_raw_current <- read_sheet("***REMOVED***", sheet="Main Sheet") %>%
+survey_raw_current <- read_sheet(Sys.getenv("SURVEY_CURRENT"), sheet="Main Sheet") %>%
   rename(pt_id = 'Patient Code') %>%
-    mutate(Date = as.Date(Timestamp),
-           pt_id = tolower(pt_id))
-
-survey_hourly_raw_old <- read_sheet("***REMOVED***", sheet="Hourly") %>%
-  rename(Timestamp = 'Start time') %>%
-  unite(pt_id, c('What are the first two letters of your FIRST name?', 'What are the first two letters of your LAST name?', 'What are the LAST two digits of your phone number?'), sep="", remove=TRUE) %>%
     mutate(Date = as.Date(Timestamp),
            pt_id = tolower(pt_id))
 
@@ -142,7 +124,7 @@ survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
 
 
 
-madrs_raw <- read_sheet("https://docs.google.com/spreadsheets/d/***REMOVED***")
+madrs_raw <- read_sheet(Sys.getenv("MADRS"))
 
 fetch_patient_id_aliases <- function(demographics, id) {
   lower_id <- tolower(id)
@@ -159,7 +141,7 @@ for (item in list_to_generate) {
   } else {
     earliest_date <- NA
   }
-  rmarkdown::render("src/ProgressReportsGenerator.Rmd",
+  rmarkdown::render("src/ProgressReportGenerator.Rmd",
                     output_file = paste0("../output/", patient_id, "_Report_", Sys.Date(), ".html"),
                     params = list(selected_patient = selected_patient,
                                   patient_id = patient_id,
