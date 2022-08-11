@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2022-08-11 Thu 09:56 -->
+<!-- 2022-08-11 Thu 10:48 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SOP: Rounds Reports Generation</title>
@@ -202,32 +202,32 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#orgb5e8e66">1. Purpose</a></li>
-<li><a href="#org9928934">2. Scope</a></li>
-<li><a href="#org69a8f2a">3. Goals</a></li>
-<li><a href="#org2407928">4. Definition</a></li>
-<li><a href="#org72681e4">5. Responsibilities</a></li>
-<li><a href="#org5c158fe">6. Procedure</a>
+<li><a href="#org4ecd59a">1. Purpose</a></li>
+<li><a href="#orgddfdff8">2. Scope</a></li>
+<li><a href="#org3dcfd86">3. Goals</a></li>
+<li><a href="#orgc2e2c4c">4. Definition</a></li>
+<li><a href="#org15115ad">5. Responsibilities</a></li>
+<li><a href="#orgb2c5ca9">6. Procedure</a>
 <ul>
-<li><a href="#org2e91bd5">6.1. Initial Setup</a>
+<li><a href="#orgbe8688d">6.1. Initial Setup</a>
 <ul>
-<li><a href="#orgbd24602">6.1.1. R installation</a></li>
-<li><a href="#org43c81b7">6.1.2. Terminal/Command Line Setup</a></li>
-<li><a href="#org20f7549">6.1.3. R Google Account Integration Setup</a></li>
-<li><a href="#org3ae9120">6.1.4. Directory setup</a></li>
+<li><a href="#org5dc9137">6.1.1. R installation</a></li>
+<li><a href="#org37f43e6">6.1.2. Terminal/Command Line Setup</a></li>
+<li><a href="#orgf82e728">6.1.3. R Google Account Integration Setup</a></li>
+<li><a href="#org0ac209b">6.1.4. Directory setup</a></li>
 </ul>
 </li>
-<li><a href="#orgc02e50b">6.2. Recurring Setup and Debugging</a>
+<li><a href="#orga81373f">6.2. Recurring Setup and Debugging</a>
 <ul>
-<li><a href="#org7f753eb">6.2.1. Editing the Information Input File</a></li>
-<li><a href="#orgf505cef">6.2.2. Google Re-authentication</a></li>
-<li><a href="#org6ae7719">6.2.3. Google Problems</a></li>
+<li><a href="#org2e7246c">6.2.1. Editing the Information Input File</a></li>
+<li><a href="#org2888993">6.2.2. Google Re-authentication</a></li>
+<li><a href="#org5856207">6.2.3. Google Problems</a></li>
 </ul>
 </li>
-<li><a href="#org5c4c1ef">6.3. Running the program</a></li>
-<li><a href="#orga49654f">6.4. Additional Notes/References</a>
+<li><a href="#org8ef0269">6.3. Running the program</a></li>
+<li><a href="#orgb6cc836">6.4. Additional Notes/References</a>
 <ul>
-<li><a href="#org66019b5">6.4.1. Helpful Terminal/UNIX Commands</a></li>
+<li><a href="#org74f1212">6.4.1. Helpful Terminal/UNIX Commands</a></li>
 </ul>
 </li>
 </ul>
@@ -236,8 +236,8 @@
 </div>
 </div>
 
-<div id="outline-container-orgb5e8e66" class="outline-2">
-<h2 id="orgb5e8e66"><span class="section-number-2">1.</span> Purpose</h2>
+<div id="outline-container-org4ecd59a" class="outline-2">
+<h2 id="org4ecd59a"><span class="section-number-2">1.</span> Purpose</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 This SOP was created to describe in detail the steps involved in creating rounds reports for patients at Acacia Clinic.
@@ -245,8 +245,8 @@ This SOP was created to describe in detail the steps involved in creating rounds
 </div>
 </div>
 
-<div id="outline-container-org9928934" class="outline-2">
-<h2 id="org9928934"><span class="section-number-2">2.</span> Scope</h2>
+<div id="outline-container-orgddfdff8" class="outline-2">
+<h2 id="orgddfdff8"><span class="section-number-2">2.</span> Scope</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 This document describes the creation of the rounds reports with the program created originally by Emily Jusef and heavily updated by Pierce Wang during the summer of 2022. The script creates an HTML form round report for each person, but should be double checked by its user for correctness as user error in data entry can often be an issue.
@@ -254,8 +254,8 @@ This document describes the creation of the rounds reports with the program crea
 </div>
 </div>
 
-<div id="outline-container-org69a8f2a" class="outline-2">
-<h2 id="org69a8f2a"><span class="section-number-2">3.</span> Goals</h2>
+<div id="outline-container-org3dcfd86" class="outline-2">
+<h2 id="org3dcfd86"><span class="section-number-2">3.</span> Goals</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 Standardize the process of creating rounds reports and inform those relevant persons on how to set up their environment and use the program.
@@ -263,8 +263,8 @@ Standardize the process of creating rounds reports and inform those relevant per
 </div>
 </div>
 
-<div id="outline-container-org2407928" class="outline-2">
-<h2 id="org2407928"><span class="section-number-2">4.</span> Definition</h2>
+<div id="outline-container-orgc2e2c4c" class="outline-2">
+<h2 id="orgc2e2c4c"><span class="section-number-2">4.</span> Definition</h2>
 <div class="outline-text-2" id="text-4">
 <dl class="org-dl">
 <dt><span class="underline">Terminal</span></dt><dd>A Unix-based bash/zsh shell which allows one to run commands on a command line</dd>
@@ -278,8 +278,8 @@ Standardize the process of creating rounds reports and inform those relevant per
 </div>
 </div>
 
-<div id="outline-container-org72681e4" class="outline-2">
-<h2 id="org72681e4"><span class="section-number-2">5.</span> Responsibilities</h2>
+<div id="outline-container-org15115ad" class="outline-2">
+<h2 id="org15115ad"><span class="section-number-2">5.</span> Responsibilities</h2>
 <div class="outline-text-2" id="text-5">
 <ul class="org-ul">
 <li>Program initially Emily Jusef and then heavily updated/improved by Pierce Wang, responsibilities for code are thus assigned accordingly.</li>
@@ -289,27 +289,27 @@ Standardize the process of creating rounds reports and inform those relevant per
 </div>
 </div>
 
-<div id="outline-container-org5c158fe" class="outline-2">
-<h2 id="org5c158fe"><span class="section-number-2">6.</span> Procedure</h2>
+<div id="outline-container-orgb2c5ca9" class="outline-2">
+<h2 id="orgb2c5ca9"><span class="section-number-2">6.</span> Procedure</h2>
 <div class="outline-text-2" id="text-6">
 <p>
 The following prescribes the order in which you should follow these instructions:
 </p>
 
 <ul class="org-ul">
-<li>If you are setting your system up for the first time, then follow the directions step by step through the <a href="#org2e91bd5">Initial Setup</a> instructions first, and then step through <a href="#org5c4c1ef">Running the program</a></li>
-<li>If you have already set up the system on your computer, then follow the directions in <a href="#org7f753eb">Editing the Information Input File</a>, then go ahead to <a href="#org5c4c1ef">Running the program</a></li>
-<li>If you&rsquo;re running into problems with authentication, then follow the instructions in <a href="#orgf505cef">Google Re-authentication</a></li>
+<li>If you are setting your system up for the first time, then follow the directions step by step through the <a href="#orgbe8688d">Initial Setup</a> instructions first, and then step through <a href="#org8ef0269">Running the program</a></li>
+<li>If you have already set up the system on your computer, then follow the directions in <a href="#org2e7246c">Editing the Information Input File</a>, then go ahead to <a href="#org8ef0269">Running the program</a></li>
+<li>If you&rsquo;re running into problems with authentication, then follow the instructions in <a href="#org2888993">Google Re-authentication</a></li>
 </ul>
 </div>
 
-<div id="outline-container-org2e91bd5" class="outline-3">
-<h3 id="org2e91bd5"><span class="section-number-3">6.1.</span> Initial Setup</h3>
+<div id="outline-container-orgbe8688d" class="outline-3">
+<h3 id="orgbe8688d"><span class="section-number-3">6.1.</span> Initial Setup</h3>
 <div class="outline-text-3" id="text-6-1">
 </div>
 
-<div id="outline-container-orgbd24602" class="outline-4">
-<h4 id="orgbd24602"><span class="section-number-4">6.1.1.</span> R installation</h4>
+<div id="outline-container-org5dc9137" class="outline-4">
+<h4 id="org5dc9137"><span class="section-number-4">6.1.1.</span> R installation</h4>
 <div class="outline-text-4" id="text-6-1-1">
 <p>
 Follow the links below to install both programs.
@@ -322,13 +322,13 @@ Follow the links below to install both programs.
 </div>
 </div>
 
-<div id="outline-container-org43c81b7" class="outline-4">
-<h4 id="org43c81b7"><span class="section-number-4">6.1.2.</span> Terminal/Command Line Setup</h4>
+<div id="outline-container-org37f43e6" class="outline-4">
+<h4 id="org37f43e6"><span class="section-number-4">6.1.2.</span> Terminal/Command Line Setup</h4>
 <div class="outline-text-4" id="text-6-1-2">
 </div>
 
 <ol class="org-ol">
-<li><a id="org11c30c2"></a>Mac<br />
+<li><a id="orgde5cbb0"></a>Mac<br />
 <div class="outline-text-5" id="text-6-1-2-1">
 <ol class="org-ol">
 <li>Open Terminal
@@ -354,12 +354,12 @@ Type <code>R --version</code> into terminal and press enter</li>
 </div>
 </li>
 
-<li><a id="orgd18f2c3"></a><span class="todo TODO">TODO</span> Windows<br /></li>
+<li><a id="orgc8786d8"></a><span class="todo TODO">TODO</span> Windows<br /></li>
 </ol>
 </div>
 
-<div id="outline-container-org20f7549" class="outline-4">
-<h4 id="org20f7549"><span class="section-number-4">6.1.3.</span> R Google Account Integration Setup</h4>
+<div id="outline-container-orgf82e728" class="outline-4">
+<h4 id="orgf82e728"><span class="section-number-4">6.1.3.</span> R Google Account Integration Setup</h4>
 <div class="outline-text-4" id="text-6-1-3">
 <ol class="org-ol">
 <li>Open terminal (see <a href="20220801110416-acacia_notes_generation_instructions.html#ID-66975334-b12c-4e78-bf43-5bb298d1ddf0">Terminal/Command Line Setup</a> for help)</li>
@@ -380,11 +380,11 @@ This function will bring up a few prompts. Say yes to all of them by pressing 1 
 </div>
 </div>
 
-<div id="outline-container-org3ae9120" class="outline-4">
-<h4 id="org3ae9120"><span class="section-number-4">6.1.4.</span> Directory setup</h4>
+<div id="outline-container-org0ac209b" class="outline-4">
+<h4 id="org0ac209b"><span class="section-number-4">6.1.4.</span> Directory setup</h4>
 <div class="outline-text-4" id="text-6-1-4">
 <ol class="org-ol">
-<li>Download the github repository (source code) from <a href="https://github.com/Acacia-Mental-Health/tms-notes-generation/archive/refs/heads/master.zip">TMS Notes Generation Download Link</a></li>
+<li>Download the github repository (source code) from <a href="https://github.com/Acacia-Mental-Health/rounds-reports/archive/refs/heads/main.zip">TMS Rounds Reports Generation Download Link</a></li>
 <li>Unzip the zip file</li>
 <li>Move the folder to an accessible place (you decide where to put it such that it would be most organized) on your computer</li>
 </ol>
@@ -448,12 +448,12 @@ https​://docs.google.com/spreadsheets/d/​<b><span class="underline">spreadsh
 </div>
 </div>
 
-<div id="outline-container-orgc02e50b" class="outline-3">
-<h3 id="orgc02e50b"><span class="section-number-3">6.2.</span> Recurring Setup and Debugging</h3>
+<div id="outline-container-orga81373f" class="outline-3">
+<h3 id="orga81373f"><span class="section-number-3">6.2.</span> Recurring Setup and Debugging</h3>
 <div class="outline-text-3" id="text-6-2">
 </div>
-<div id="outline-container-org7f753eb" class="outline-4">
-<h4 id="org7f753eb"><span class="section-number-4">6.2.1.</span> Editing the Information Input File</h4>
+<div id="outline-container-org2e7246c" class="outline-4">
+<h4 id="org2e7246c"><span class="section-number-4">6.2.1.</span> Editing the Information Input File</h4>
 <div class="outline-text-4" id="text-6-2-1">
 <p>
 This step is to be repeated every time you generate notes according to which patients and what time period you want to generate notes for.
@@ -481,15 +481,15 @@ A <code>list</code> of patient codes defining which patients to create reports f
 </div>
 </div>
 
-<div id="outline-container-orgf505cef" class="outline-4">
-<h4 id="orgf505cef"><span class="section-number-4">6.2.2.</span> Google Re-authentication</h4>
+<div id="outline-container-org2888993" class="outline-4">
+<h4 id="org2888993"><span class="section-number-4">6.2.2.</span> Google Re-authentication</h4>
 <div class="outline-text-4" id="text-6-2-2">
 <p>
 <b>This step is only necessary if the authentication is not working.</b>
 </p>
 
 <ol class="org-ol">
-<li>Open terminal (see <a href="#org43c81b7">Terminal/Command Line Setup</a> for help)</li>
+<li>Open terminal (see <a href="#org37f43e6">Terminal/Command Line Setup</a> for help)</li>
 <li>Open R shell
 Type <code>R</code> then pressing enter</li>
 <li><p>
@@ -504,13 +504,13 @@ gs4_auth()
 </div>
 </div>
 
-<div id="outline-container-org6ae7719" class="outline-4">
-<h4 id="org6ae7719"><span class="section-number-4">6.2.3.</span> Google Problems</h4>
+<div id="outline-container-org5856207" class="outline-4">
+<h4 id="org5856207"><span class="section-number-4">6.2.3.</span> Google Problems</h4>
 </div>
 </div>
 
-<div id="outline-container-org5c4c1ef" class="outline-3">
-<h3 id="org5c4c1ef"><span class="section-number-3">6.3.</span> Running the program</h3>
+<div id="outline-container-org8ef0269" class="outline-3">
+<h3 id="org8ef0269"><span class="section-number-3">6.3.</span> Running the program</h3>
 <div class="outline-text-3" id="text-6-3">
 <p>
 <span class="underline">Once all setup has been completed, follow these instructions to run the program.</span>
@@ -519,23 +519,23 @@ gs4_auth()
 <ol class="org-ol">
 <li>Navigate/Go to the folder where you have stored the <code>rounds-reports</code> directory
 Note: You should not be <b>in</b> the directory at this point. Rather, you should see the folder <code>rounds-reports</code>. This is important for the next step</li>
-<li>Open <a href="#org43c81b7">terminal</a></li>
+<li>Open <a href="#org37f43e6">terminal</a></li>
 <li>Type <code>cd</code> + <b>space</b>, then from Finder drag the folder into Terminal then type enter</li>
 <li>Now, type <code>Rscript src/ProgressReportScript.R</code> + enter
 <ul class="org-ul">
-<li><span class="underline">NOTE: If the script is not working, and if the error log shows it has anything to do with authentication with Google, then refer to the steps for Google Authentication: <a href="#org20f7549">R Google Account Integration Setup</a> &amp; <a href="#orgf505cef">Google Re-authentication</a></span></li>
+<li><span class="underline">NOTE: If the script is not working, and if the error log shows it has anything to do with authentication with Google, then refer to the steps for Google Authentication: <a href="#orgf82e728">R Google Account Integration Setup</a> &amp; <a href="#org2888993">Google Re-authentication</a></span></li>
 </ul></li>
 </ol>
 </div>
 </div>
 
 
-<div id="outline-container-orga49654f" class="outline-3">
-<h3 id="orga49654f"><span class="section-number-3">6.4.</span> Additional Notes/References</h3>
+<div id="outline-container-orgb6cc836" class="outline-3">
+<h3 id="orgb6cc836"><span class="section-number-3">6.4.</span> Additional Notes/References</h3>
 <div class="outline-text-3" id="text-6-4">
 </div>
-<div id="outline-container-org66019b5" class="outline-4">
-<h4 id="org66019b5"><span class="section-number-4">6.4.1.</span> Helpful Terminal/UNIX Commands</h4>
+<div id="outline-container-org74f1212" class="outline-4">
+<h4 id="org74f1212"><span class="section-number-4">6.4.1.</span> Helpful Terminal/UNIX Commands</h4>
 <div class="outline-text-4" id="text-6-4-1">
 <ul class="org-ul">
 <li>Directory-related commands. Use these commands to better understand where you are in your computer when navigating it within Terminal.
@@ -552,7 +552,7 @@ Note: You should not be <b>in</b> the directory at this point. Rather, you shoul
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Pierce Wang</p>
-<p class="date">Created: 2022-08-11 Thu 09:56</p>
+<p class="date">Created: 2022-08-11 Thu 10:48</p>
 </div>
 </body>
 </html>
