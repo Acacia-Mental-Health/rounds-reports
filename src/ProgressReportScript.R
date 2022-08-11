@@ -37,9 +37,10 @@ pkgLoad <- function( packages = "std" ) {
 ## Ensure all packages are loaded/installed.
 pkgLoad()
 
+gs4_auth(email = Sys.getenv("GOOGLE_EMAIL"))
+
 demographics <- read_sheet(Sys.getenv("DEMOGRAPHICS"), sheet="Patient Demographics")
 
-gs4_auth(email = Sys.getenv("GOOGLE_EMAIL"))
 tech_raw_old_1 <- read_sheet(Sys.getenv("TECH_OLD"), sheet="TMS Technician Data Input 2021 (3)", range="B:AF")
 # %>%
 #     rename(timestamp = 'What is the date of the treatment?',
