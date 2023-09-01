@@ -6,8 +6,8 @@ pkgLoad <- function( packages = "std" ) {
 
     if( length( packages ) == 1L && packages == "std" ) {
         packages <- c( "data.table", "chron", "plyr", "dplyr", "shiny",
-                       "shinyjs", "parallel", "doMC", "utils",
-                       "stats", "microbenchmark", "ggplot2", "readxl",
+                       "shinyjs", "parallel", "doMC",
+                       "microbenchmark", "ggplot2", "readxl",
                        "feather", "googlesheets4", "readr", "DT", "knitr",
                        "rmarkdown", "Rcpp", "formattable", "ggnewscale",
                        "htmltools", "lubridate", "stringr", "tidyr", "tidyverse"
@@ -75,7 +75,7 @@ tech_raw_old_3 <- read_sheet(Sys.getenv("TECH_OLD"), sheet="TMS Technician Data 
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("3: %i", ncol(tech_raw_old_3))
 
-tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Form Responses 1") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Query", range="B:AF") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
     #        Planned_Course = 'Planned Course') %>%
@@ -86,13 +86,21 @@ tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Form Responses 1")
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("4: %i", ncol(tech_raw_current))
 
+print(tech_raw_old_3)
+print(tech_raw_current)
 
 tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
     rename(timestamp = 'What is the date of the treatment?',
            Tx = 'Treatment #',
            Planned_Course = 'Planned Course') %>%
     filter(Tx != "NA") %>%
-    unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE) %>%
+    unite(
+      pt_id,
+      c('What is the four letter patient ID? (First two letters of FIRST and LAST name)',
+        'What are the last two digits of the patient\'s cell phone number?'),
+      sep="",
+      remove=TRUE
+    ) %>%
     mutate(
         Date = as.Date(timestamp),
         Tx = as.integer(as.character(Tx)),
