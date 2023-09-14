@@ -86,8 +86,8 @@ tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Query", range="B:A
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("4: %i", ncol(tech_raw_current))
 
-print(tech_raw_old_3)
-print(tech_raw_current)
+## print(tech_raw_old_3)
+## print(tech_raw_current)
 
 tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
     rename(timestamp = 'What is the date of the treatment?',
@@ -134,6 +134,7 @@ survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
 
 
 madrs_raw <- read_sheet(Sys.getenv("MADRS"))
+madrs_raw$Patient <- tolower(madrs_raw$Patient)
 
 fetch_patient_id_aliases <- function(demographics, id) {
   lower_id <- tolower(id)

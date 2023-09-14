@@ -248,8 +248,8 @@ if (nrow(bdi) != 0) {
 
 ## Load and filter MADRS data
 ## Build dataframe of MADRS scores and dates
-madrs_raw$Patient <- tolower(madrs_raw$Patient)
-madrs_filtered <- madrs_raw %>% filter(str_detect(selected_patient, paste0("^", Patient, ".*$")))
+madrs_filtered <- madrs_raw %>% filter(str_detect(selected_patient[1], paste0("^", Patient, ".*$")))
+
 # MADRS <- survey_filtered %>% filter(!is.na(MADRS))
 # bdi <- bdi %>% mutate(Timestamp = as.factor(as.POSIXct(Timestamp, format = "%m/%d/%y %I:%M %p", tz = "UTC"))) %>%
 
