@@ -75,7 +75,9 @@ tech_raw_old_3 <- read_sheet(Sys.getenv("TECH_OLD"), sheet="TMS Technician Data 
     # unite(pt_id, c('What is the four letter patient ID? (First two letters of FIRST and LAST name)', 'What are the last two digits of the patient\'s cell phone number?'), sep="", remove=TRUE)
 ## sprintf("3: %i", ncol(tech_raw_old_3))
 
-tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Query", range="B:AF") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+tech_raw_2022_07_2023_11_17 <- read_sheet(Sys.getenv("TECH_2022_07_05_2023_11_17"), sheet="Query", range="B:AF") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
+
+tech_raw_current <- read_sheet(Sys.getenv("TECH_2023_11_17_CURRENT"), sheet="Query", range="B:AF") # %>% ## select(-"Txt.Sum", -"Email", -"Name", -"Date") %>%
     # rename(timestamp = 'What is the date of the treatment?',
     #        Tx = 'Treatment #',
     #        Planned_Course = 'Planned Course') %>%
@@ -89,7 +91,7 @@ tech_raw_current <- read_sheet(Sys.getenv("TECH_NEW"), sheet="Query", range="B:A
 ## print(tech_raw_old_3)
 ## print(tech_raw_current)
 
-tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_current) %>%
+tech_raw <- rbind(tech_raw_old_1, tech_raw_old_2, tech_raw_old_3, tech_raw_2022_07_2023_11_17, tech_raw_current) %>%
     rename(timestamp = 'What is the date of the treatment?',
            Tx = 'Treatment #',
            Planned_Course = 'Planned Course') %>%
@@ -121,12 +123,17 @@ survey_hourly_raw_old <- read_sheet(Sys.getenv("SURVEY_OLD"), sheet="Hourly") %>
     mutate(Date = as.Date(Timestamp),
            pt_id = tolower(pt_id))
 
-survey_raw_current <- read_sheet(Sys.getenv("SURVEY_CURRENT"), sheet="Main Sheet") %>%
+survey_raw_2022_06_26_2023_11_18 <- read_sheet(Sys.getenv("SURVEY_2022_06_26_2023_11_18"), sheet="Main Sheet") %>%
   rename(pt_id = 'Patient Code') %>%
     mutate(Date = as.Date(Timestamp),
            pt_id = tolower(pt_id))
 
-survey_raw <- rbind(survey_raw_old, survey_raw_current) %>%
+survey_raw_current <- read_sheet(Sys.getenv("SURVEY_2023_11_18_CURRENT"), sheet="Main Sheet") %>%
+  rename(pt_id = 'Patient Code') %>%
+    mutate(Date = as.Date(Timestamp),
+           pt_id = tolower(pt_id))
+
+survey_raw <- rbind(survey_raw_old, survey_raw_2022_06_26_2023_11_18, survey_raw_current) %>%
   mutate(PHQ_Q9 = as.integer(PHQ_Q9)) %>%
   rename(MADRS = 'MADRS-SR',
          PreTMS = 'Pre-TMS')
