@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 source("./src/ProgressReportSetup.R")
-readRenviron(".Renviron")
+readRenviron("Renviron.txt")
 
 pkgLoad <- function( packages = "std" ) {
 
